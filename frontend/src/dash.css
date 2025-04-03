@@ -1,0 +1,458 @@
+
+/* Dashboard Layout */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+    color: #333;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  /* Sidebar Styles */
+  .sidebar {
+    width: 250px;
+    background-color: #1c1c1c;
+    color: #fff;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  
+  .sidebar.closed {
+    width: 0;
+    overflow: hidden;
+  }
+  
+  .sidebar-logo {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .sidebar-logo h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: 600;
+  }
+
+  .sidebar-logo h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  
+  .studio-text {
+    font-weight: 600; 
+  }
+  
+  .studio-number {
+    font-weight: 100;
+  }
+  
+  .sidebar-menu {
+    padding: 20px 0;
+  }
+  
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  .nav-item.active {
+    background-color: #4a6fdc;
+    color: #fff;
+  }
+  
+  .nav-icon {
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .nav-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  .nav-item.logout {
+    margin-top: 40px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+  }
+  
+  /* Main Content Styles */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+  
+  /* Top Navbar Styles */
+  .top-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    height: 64px;
+  }
+  
+  .navbar-left {
+    display: flex;
+    align-items: center;
+  }
+  
+  .menu-toggle {
+    background: none;
+    border: none;
+    color: #333;
+    margin-right: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 5px;
+  }
+  
+  .navbar-logo {
+    display: none;
+  }
+  
+  .navbar-logo h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1e2533;
+    font-weight: 700;
+  }
+  
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background-color: #f5f7fa;
+    border-radius: 20px;
+    padding: 8px 15px;
+    margin-left: 15px;
+  }
+  
+  .search-bar input {
+    background: none;
+    border: none;
+    outline: none;
+    margin-left: 10px;
+    font-size: 0.9rem;
+    width: 300px;
+  }
+  
+  .navbar-right {
+    display: flex;
+    align-items: center;
+  }
+  
+  .icon-button {
+    background: none;
+    border: none;
+    color: #333;
+    margin-left: 15px;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+  }
+  
+  .icon-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #e74c3c;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .profile-button {
+    background-color: #4a6fdc;
+    color: #fff;
+  }
+  
+  /* Dashboard Content Styles */
+  .dashboard-content {
+    display: flex;
+    padding: 25px;
+    flex: 1;
+    gap: 25px;
+  }
+  
+  .content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+  
+  .left-section {
+    flex: 1;
+  }
+  
+  .right-section {
+    flex: 1;
+  }
+  
+  /* Card Styles */
+  .welcome-card, .status-card, .appointments-card, .projects-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 25px;
+  }
+  
+  .welcome-card h2 {
+    margin-top: 0;
+    color: #1e2533;
+    font-size: 1.8rem;
+  }
+  
+  .welcome-card p {
+    color: #666;
+    margin-bottom: 0;
+  }
+  
+  .status-card h3, .appointments-card h3 {
+    margin-top: 0;
+    color: #1e2533;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+  
+  .status-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .status-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+  }
+  
+  .progress-bar {
+    height: 8px;
+    background-color: #edf1f7;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress {
+    height: 100%;
+    background-color: #4a6fdc;
+    border-radius: 4px;
+  }
+  
+  .appointment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .appointment-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 15px;
+    background-color: #f5f7fa;
+    border-radius: 8px;
+  }
+  
+  .appointment-time {
+    background-color: #4a6fdc;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 75px;
+    text-align: center;
+    margin-right: 15px;
+  }
+  
+  .appointment-details h4 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+    color: #1e2533;
+  }
+  
+  .appointment-details p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .card-header h3 {
+    margin: 0;
+    color: #1e2533;
+    font-size: 1.3rem;
+  }
+  
+  .project-filter {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    font-size: 0.9rem;
+    color: #333;
+    outline: none;
+  }
+  
+  .project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .project-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f5f7fa;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+  }
+  
+  .project-item:hover {
+    transform: translateY(-2px);
+  }
+  
+  .project-info h4 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: #1e2533;
+  }
+  
+  .client-info {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+  }
+  
+  .client-name {
+    color: #4a6fdc;
+    font-weight: 500;
+  }
+  
+  .project-date {
+    color: #666;
+  }
+  
+  .project-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  /* Responsive Styles */
+  @media (max-width: 992px) {
+    .dashboard-content {
+      flex-direction: column;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed;
+      height: 100vh;
+    }
+    
+    .sidebar.open {
+      width: 250px;
+    }
+    
+    .navbar-logo {
+      display: block;
+    }
+    
+    .search-bar {
+      display: none;
+    }
+    
+    .top-navbar {
+      padding: 15px;
+    }
+    
+    .dashboard-content {
+      padding: 15px;
+    }
+    
+    .welcome-card h2 {
+      font-size: 1.5rem;
+    }
+    
+    .left-section, .right-section {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .appointment-item {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .appointment-time {
+      margin-right: 0;
+      margin-bottom: 10px;
+    }
+    
+    .project-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .project-status {
+      align-self: flex-start;
+    }
+
+}
+  

@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "awesome-photographic-studio",
+  "private_key_id": "cffa781c47c12a58fe42f43972418ee569417b72",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQClO6rtlo8+bkIq\nBG+RduPWspkC8XKq9rEDU8xutoSSBzYleAe30xGHt94i8hgiAuo0E+kLLKLTqn36\nqcSAmdGSIHxym+ayMZKYTBrzamvbHgniYHNMAhH1KvBOXvhmycnEXcQPFaTidCX4\nfVj9sQbXQ9Oviqf7oOloHq2eFrRT95EwKlPjhrxYbs29N478iTPNUkKWgqSRC31t\nas6dpJ6vwoXf0K9vVZx7u71eO1NLcuF7n57jijdLINZIpML3Z2t3cN5nbod581zk\nuf3BvRlhmiIxwvyIVy/JCTWB/dp20fw4j3sJ6Oz6xPtPKoDd/kZml89++YtXmbJq\nsm0JMRyRAgMBAAECggEAAk1lig0OYEZpkz028pSTyWwn1pA0taVRyTKJoYPXLw23\nN1b8L3SJuS0JJ/zFl1AYW4SAO23mnGA+m4Ba/Qu+6nQ+s0+T5cvr8aLF1y6iKY5F\n3kIZPv8/S+ab5yLtoj1jMsssCzFmpn0i6qxLAIMJPF268aZqUPsuX5bxerv8nlrh\nGFaGHCuazqDL7sK/enlLWClSPBvG13/DcET7QaluzXPkTGrPktaZc7WWFvL62YWH\n9VBar5PFafI79Lvu/H096X+Fkpgx+PwdxCPlt5cXZ2eQdEPpv2xL4e2Iy1alBr19\nhsUj6WjTsQERAHqXY2uM+YzBHRCGCj12hr0LqqRArQKBgQDaOli+vlWhW0xk3tO0\nqhVi+TWP4Hu7UyfGum/ER/PTM9a47YfzI7U5ewVuYzQtKxpea2hpprhKvIg4e2CQ\nFIBLv1Y+JAomWBgrpPxSgcTMOuE8Yb9wPFk6fMIs1lwLNzArVH7SceH3VLNm5DF5\n87NekpACk8S6oMPM4FQ1oiUvkwKBgQDB1SA7a7aUDiRrLz4XzpQhkNKaZ66RQ/09\n8MRHJAfGAuaLPC+2Jl6UJ2Nb9JYM7wbgGkvz/SgxwJ7cu+QR8VcLevHufv2q4yMu\nhs/UOJT2FPFChmLB7PhrLl5HJSaC43w6En2lgkj2tykm6FJW3AMuXnDRYOW0feND\n9UWCcUnxywKBgQCoTAMQ51zGmdBqomYGmHzx3VtvYCJMLy8n1bRIXW0u3nWkHJuR\n6WHjuHpRzXP5uZoWYyMdB5RtHsS3On8X3peq0x7Bwa2KMLpDPnPRdX6+OlJl7MRk\n3EW8E2b0iURm6eLeJ8W+qlEoG0xX93goosccEk+5jRhVDZKzN/X5ftjKvQKBgBWQ\nW1yg+BfyltSh1duaLNqrHPL2k/IvSS4p6fwsIv1Bd1qIIJq4HA+JbkFdrY/Uy8QE\nyOxk/qLCVioicRYZ7mAllmK9GAV57YEQmHB4twHFhK2s+7GtZlmuN+jcVjN7kWd4\nhSfznaBs8hQVBowJQAVZll2E1SlGVBFMaSZA6kQPAoGAcde2zURlmo/lv74bPr6j\nluy/0wdI3dYZRHgMu/zkmYWwiXdPVOXV+BpzkNjgvNPjwnrxscf9SnreZPx3v0+/\nLwWBc9EfcVcGeyOZt/LYQyFF1ZtbviOV4Bhx9k/UZWsdB/ewmSKlFad8sAJeqALE\nVKuKb2uNiIJPxXAUpBUBqiY=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@awesome-photographic-studio.iam.gserviceaccount.com",
+  "client_id": "112214090344300981509",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40awesome-photographic-studio.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
