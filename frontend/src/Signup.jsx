@@ -15,6 +15,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { FaCalendarAlt } from 'react-icons/fa';
 import axios from 'axios';
+import LoginBanner from '/src/assets/LoginBanner.png';
 
 function Signup() {
   const [formData, setFormData] = useState({
@@ -251,7 +252,7 @@ function Signup() {
 
             <MDBCol sm="6" className="d-none d-sm-block px-0">
               <img
-                  src={`${import.meta.env.BASE_URL}src/assets/LoginBanner.png`}
+                  src={LoginBanner}
                   alt="Login visual"
                   className="w-100"
                   style={{ objectFit: 'cover', objectPosition: 'center' }}
