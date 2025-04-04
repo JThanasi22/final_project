@@ -25,18 +25,18 @@ public class AuthController {
 
         User user = firestoreService.getUserByEmail(request.getEmail());
         if (user == null) {
-            System.out.println("🚫 No user found");
+            System.out.println("No user found");
         }
 
         boolean valid = firestoreService.validateUser(request.getEmail(), request.getPassword());
-        System.out.println("🧪 Password valid: " + valid);
+        System.out.println("Password valid: " + valid);
 
         if (user != null && valid) {
             String token = JwtUtil.generateToken(user);
-            System.out.println("✅ Login success. Token: " + token);
+            System.out.println("Login success. Token: " + token);
             return ResponseEntity.ok(Map.of("token", token));
         } else {
-            System.out.println("❌ Invalid credentials for: " + request.getEmail());
+            System.out.println("Invalid credentials for: " + request.getEmail());
             return ResponseEntity.status(401).body("Invalid credentials");
         }
     }
