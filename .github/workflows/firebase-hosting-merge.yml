@@ -29,3 +29,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AWESOME_PHOTOGRAPHIC_STUDIO }}
           channelId: live
           projectId: awesome-photographic-studio
+          entryPoint: frontend
