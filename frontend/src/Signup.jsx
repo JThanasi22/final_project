@@ -15,7 +15,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { FaCalendarAlt } from 'react-icons/fa';
 import axios from 'axios';
-import LoginBanner from '/src/assets/LoginBanner.png';
+import LoginBanner from './assets/LoginBanner.png';
 
 function Signup() {
   const [formData, setFormData] = useState({
