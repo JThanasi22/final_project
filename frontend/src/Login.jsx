@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'mdb-react-ui-kit/dist/css/mdb.min.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import LoginBanner from './assets/LoginBanner.png';
 import {
     MDBBtn,
     MDBContainer,
@@ -14,8 +15,6 @@ import {
     MDBModalContent,
     MDBModalBody
 } from 'mdb-react-ui-kit';
-
-import LoginBanner from '/src/assets/LoginBanner.png';
 import './Login.css';
 
 function Login() {
