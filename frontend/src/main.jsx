@@ -9,6 +9,7 @@ import Dashboard from './dashboard.jsx';
 import Admindashboard from "./Admindashboard.jsx";
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Unauthorized from './Unauthorized.jsx';
+import UserSettings from "./UserSettings.jsx";
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
@@ -37,9 +38,17 @@ createRoot(document.getElementById('root')).render(
                 <Route
                     path="/Admindashboard"
                     element={
-                        <ProtectedRoute>
-                            <Admindashboard />
-                        </ProtectedRoute>
+                    <ProtectedRoute>
+                        <Admindashboard />
+                    </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/settings"
+                    element={
+                     <ProtectedRoute>
+                        <UserSettings />
+                    </ProtectedRoute>
                     }
                 />
             </Routes>

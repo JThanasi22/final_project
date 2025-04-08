@@ -1,16 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { CSSTransition } from 'react-transition-group';
+
+import BellIcon from './icons/bell.png';
+import MessengerIcon from './icons/messenger.png';
+import CaretIcon from './icons/caret.png';
+import PlusIcon from './icons/plus.png';
+import CogIcon from './icons/cog.png';
+
 import './dash.css';
 
 const Admindashboard = () => {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userEmail, setUserEmail] = useState('User');
-    const [dropdownOpen, setDropdownOpen] = useState(false);
     const [greeting, setGreeting] = useState('Welcome back');
 
-    const toggleDropdown = () => setDropdownOpen(prev => !prev);
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -34,27 +48,6 @@ const Admindashboard = () => {
         }
     }, []);
 
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            const dropdown = document.querySelector('.profile-container');
-            if (dropdown && !dropdown.contains(e.target)) {
-                setDropdownOpen(false);
-            }
-        };
-
-        document.addEventListener('click', handleClickOutside);
-        return () => document.removeEventListener('click', handleClickOutside);
-    }, []);
-
-    const toggleSidebar = () => {
-        setSidebarOpen(!sidebarOpen);
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        navigate('/login');
-    };
-
     return (
         <div className="dashboard-container">
             <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
@@ -68,7 +61,6 @@ const Admindashboard = () => {
                     <div className="nav-item"><span className="nav-label">Billing</span></div>
                     <div className="nav-item"><span className="nav-label">Media</span></div>
                     <div className="nav-item"><span className="nav-label">Appointments</span></div>
-                    <div className="nav-item"><span className="nav-label">Settings</span></div>
                 </div>
             </div>
 
@@ -83,23 +75,26 @@ const Admindashboard = () => {
                             <input type="text" placeholder="Search..." />
                         </div>
                     </div>
-                    <div className="navbar-right">
-                        <button className="icon-button">
-                            <span className="icon-bell">🔔</span>
-                            <span className="notification-badge">3</span>
-                        </button>
-                        <div className="profile-container">
-                            <button className="icon-button profile-button" onClick={toggleDropdown}>
-                                <span className="icon-user">👤</span>
-                            </button>
 
-                            {dropdownOpen && (
-                                <div className="dropdown-menu" >
-                                    <div className="dropdown-item" onClick={handleLogout}>Logout</div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <ToggleNavbar>
+                        <NavItem icon={<img src={PlusIcon} alt="Plus" style={{ width: 20, height: 20 }} />}>
+                            Add
+                        </NavItem>
+
+                        <NavItem icon={<img src={BellIcon} alt="Bell" style={{ width: 20, height: 20 }} />}>
+                            Notification
+                        </NavItem>
+
+                        <NavItem icon={<img src={MessengerIcon} alt="Messenger" style={{ width: 20, height: 20 }} />}>
+                            Messages
+                        </NavItem>
+
+                        <NavItem icon={<img src={CaretIcon} alt="Caret" style={{ width: 20, height: 20 }} />}>
+                            <DropdownMenu onLogout={handleLogout} />
+                            More
+                        </NavItem>
+                    </ToggleNavbar>
+
                 </div>
 
                 <div className="dashboard-content">
@@ -152,6 +147,125 @@ const Admindashboard = () => {
         </div>
     );
 };
+
+// Components
+function ToggleNavbar({ children }) {
+    const [showNavItems, setShowNavItems] = useState(false);
+    const containerRef = useRef(null);
+
+    return (
+        <div className="toggle-navbar" ref={containerRef}>
+            <button
+                className="main-toggle-button"
+                onClick={() => setShowNavItems(!showNavItems)}
+            >
+                More
+            </button>
+
+            {showNavItems && (
+                <div className="navbar-items">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function NavItem({ icon, children }) {
+    const [open, setOpen] = useState(false);
+
+    // Check if there's a DropdownMenu as a child
+    const hasDropdown = React.Children.toArray(children).some(
+        child => React.isValidElement(child) && child.type === DropdownMenu
+    );
+
+    const labelText = React.Children.toArray(children).filter(
+        child => typeof child === 'string' || typeof child === 'number'
+    );
+
+    return (
+        <li className="nav-item">
+            <button className="icon-button" onClick={() => setOpen(!open)}>
+                <div className="nav-icon-text">
+                    {icon}
+                    <span className="nav-text">{labelText}</span>
+                </div>
+            </button>
+
+            {open && hasDropdown && React.Children.map(children, child =>
+                React.isValidElement(child) && child.type === DropdownMenu ? child : null
+            )}
+        </li>
+    );
+}
+
+
+
+
+function DropdownMenu({ onLogout }) {
+    const [activeMenu, setActiveMenu] = useState('main');
+    const [menuHeight, setMenuHeight] = useState(null);
+    const dropdownRef = useRef(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (dropdownRef.current) {
+            setMenuHeight(dropdownRef.current.firstChild.offsetHeight);
+        }
+    }, []);
+
+    function calcHeight(el) {
+        const height = el.offsetHeight;
+        setMenuHeight(height);
+    }
+
+    function DropdownItem({ children, leftIcon, onClick, className = '', style = {} }) {
+        return (
+            <button
+                className={`menu-item ${className}`}
+                onClick={onClick}
+                style={{ color: 'black', ...style }}
+            >
+                {leftIcon && <span className="icon-left">{leftIcon}</span>}
+                <span className="item-text">{children}</span>
+            </button>
+        );
+    }
+
+
+    return (
+        <div className="dropdown" style={{ height: menuHeight }} ref={dropdownRef}>
+            <CSSTransition
+                in={activeMenu === 'main'}
+                timeout={500}
+                classNames="menu-primary"
+                unmountOnExit
+                onEnter={calcHeight}
+            >
+                <div className="menu">
+                    <DropdownItem
+                        leftIcon={<img src={CogIcon} alt="Settings" style={{ width: 20, height: 20 }} />}
+                        onClick={() => navigate('/settings')}
+                        style={{ color: 'black' }}
+                    >
+                        Settings
+                    </DropdownItem>
+
+                    <DropdownItem
+                        leftIcon={<span>🚪</span>}
+                        onClick={onLogout}
+                        style={{ color: 'black' }}
+                    >
+                        Logout
+                    </DropdownItem>
+                </div>
+            </CSSTransition>
+
+            {/* You can add more CSSTransition blocks for submenu if needed */}
+        </div>
+    );
+}
+
 
 const ProjectStatus = ({ label, percent }) => (
     <div className="status-item">

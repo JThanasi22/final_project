@@ -57,6 +57,7 @@
   transition: all 0.2s ease;
 }
 
+
 .nav-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -186,51 +187,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.profile-container {
-  position: relative;
-  display: inline-block;
-}
-
-.profile-button {
-  background-color: #4a6fdc;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.dropdown-menu {
-  position: relative;
-  top: 100%;
-  right: 0px;
-  bottom: 0px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  padding: 8px 10px;
-  min-width: 120px;
-  display: block; /* Important */
-}
-
-.dropdown-item {
-  padding: 8px 16px;
-  cursor: pointer;
-  color: #000000;
-}
-
-.dropdown-item:hover {
-  background-color: #f0f0f0;
 }
 
 /* Dashboard Content Styles */
@@ -485,4 +441,110 @@
   .project-status {
     align-self: flex-start;
   }
+}
+
+/* Top Navbar Custom Dropdown */
+.toggle-navbar {
+  position: relative;
+  display: inline-block;
+}
+
+.main-toggle-button {
+  padding: 10px 15px;
+  font-size: 14px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.navbar-items {
+  position: absolute;
+  top: 110%;
+  left: -371px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  background-color: #f1f1f1;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 0;
+}
+
+.navbar-items-exept {
+  position: absolute;
+  top: 110%;
+  left: -260px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  background-color: #f1f1f1;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 0;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 200px;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  background-color: white;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  border-radius: 8px;
+  z-index: 100;
+}
+
+.menu {
+  padding: 0.5rem;
+}
+
+.menu-item {
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.icon-left {
+  margin-right: 10px;
+}
+
+.menu-primary-enter {
+  position: absolute;
+  transform: translateX(-110%);
+  opacity: 0;
+}
+
+.menu-primary-enter-active {
+  transform: translateX(0%);
+  opacity: 1;
+  transition: all 500ms ease;
+}
+
+.menu-primary-exit {
+  position: absolute;
+  opacity: 1;
+}
+
+.menu-primary-exit-active {
+  transform: translateX(110%);
+  opacity: 0;
+  transition: all 500ms ease;
 }
