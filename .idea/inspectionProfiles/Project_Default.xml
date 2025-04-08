@@ -17,15 +17,18 @@
       <option name="ignoredModules">
         <list>
           <option value="spring" />
+          <option value="spring" />
         </list>
       </option>
       <option name="ignoredPackages">
         <list>
           <option value="com.google.guava:guava:31.1-jre" />
+          <option value="com.google.protobuf:protobuf-java:3.23.2" />
         </list>
       </option>
       <option name="ignoredReasons">
         <list>
+          <option value="Not exploitable" />
           <option value="Not exploitable" />
         </list>
       </option>

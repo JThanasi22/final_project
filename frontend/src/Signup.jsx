@@ -205,9 +205,7 @@ function Signup() {
                   <p className="lead" style={{ color: '#161819', fontSize: '1.1rem' }}>
                     Simplify Studio Management, Workflow and Clients.
                   </p>
-                </div>
-                <h3 className="fw-bold mb-4 pb-2 text-center" style={{ fontSize: '1.8rem' }}>---------------Sign up---------------</h3>
-
+                <h3 className="fw-bold mb-3 pb-3 custom-heading" style={{ letterSpacing: '4px' }}>Sign Up</h3>
                 <form onSubmit={handleSubmit} className="w-100">
                   <MDBInput label="Name" id="name" type="text" size="lg" wrapperClass="mb-3" onChange={handleChange} value={formData.name} />
                   <MDBInput label="Surname" id="surname" type="text" size="lg" wrapperClass="mb-3" onChange={handleChange} value={formData.surname} />
@@ -290,6 +288,7 @@ function Signup() {
                 <p className="text-center mt-3">
                   Already have an account? <a href="/" className="link-info">Log in</a>
                 </p>
+                </div>
               </div>
             </MDBCol>
 

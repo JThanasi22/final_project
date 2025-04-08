@@ -10,6 +10,9 @@ import Admindashboard from "./Admindashboard.jsx";
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Unauthorized from './Unauthorized.jsx';
 import UserSettings from "./UserSettings.jsx";
+import ConfirmReset from "./ConfirmReset.jsx";
+import ResetPassword from './resetPass.jsx';
+import ForgetPass from "./ForgetPass.jsx";
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
@@ -25,6 +28,9 @@ createRoot(document.getElementById('root')).render(
                 {/* Public routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/forget-pass" element={<ForgetPass />} />
+                <Route path="/confirm-reset" element={<ConfirmReset />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* Protected route */}
                 <Route

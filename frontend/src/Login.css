@@ -6,10 +6,10 @@
 
 .custom-heading::before,
 .custom-heading::after {
-  content: '_____________________________';  
-  font-size: 0.5rem;  
-  color: #555e5e;   
-  margin: 0 20px;  
+  content: '_____________________________';
+  font-size: 0.5rem;
+  color: #555e5e;
+  margin: 0 20px;
 }
 
 .custom-heading h3 {
@@ -25,11 +25,11 @@
 
 @media (max-width: 767px) {
   .h-custom-2 {
-    height: auto; 
+    height: auto;
   }
 
   .ps-5 {
-    padding-left: 2rem; 
+    padding-left: 2rem;
   }
 
   .ms-5 {
@@ -38,15 +38,15 @@
 
   .mx-5 {
     margin-left: 2rem;
-    margin-right: 2rem; 
+    margin-right: 2rem;
   }
 
   .fw-bold {
-    font-weight: 600; 
+    font-weight: 600;
   }
 
   .h1 {
-    font-size: 2.5rem; 
+    font-size: 2.5rem;
   }
 
   .w-75 {
@@ -67,7 +67,7 @@ body {
 }
 
 .h-custom-2 {
-  height: 100vh; 
+  height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -76,7 +76,7 @@ body {
 
 @media (max-width: 767px) {
   .h-custom-2 {
-    height: auto; 
+    height: auto;
     padding-top: 2rem;
     padding-bottom: 2rem;
   }
@@ -84,7 +84,7 @@ body {
 
 html, body {
   height: 100%;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .d-flex {
@@ -124,7 +124,7 @@ html, body {
 }
 
 .h-custom-2 {
-  height: 100vh; 
+  height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -133,7 +133,7 @@ html, body {
 
 @media (max-width: 767px) {
   .h-custom-2 {
-    height: auto; 
+    height: auto;
     padding-top: 2rem;
     padding-bottom: 2rem;
   }
@@ -150,7 +150,7 @@ html, body {
 }
 
 .button-width {
-  width: 70% !important; 
+  width: 70% !important;
 }
 
 @media (max-width: 767px) {
@@ -159,7 +159,7 @@ html, body {
   }
 
   .button-width {
-    width: 70% !important; 
+    width: 70% !important;
   }
 }
 

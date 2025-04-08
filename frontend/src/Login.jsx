@@ -40,7 +40,7 @@ function Login() {
         setIsLoggingIn(true); // Start loading
 
         try {
-            const response = await fetch('/api/users/login', {
+            const response = await fetch("http://localhost:8080/api/users/login", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -80,6 +80,10 @@ function Login() {
         }
     };
 
+    const handleForgotPasswordClick = () => {
+        navigate('/forget-pass');
+    };
+
 
     return (
         <>
@@ -106,16 +110,11 @@ function Login() {
                                 <p className="lead" style={{ color: '#161819', fontSize: '1.1rem' }}>
                                     Simplify Studio Management, Workflow and Clients.
                                 </p>
-                            </div>
 
-                            <h3
-                                className="fw-bold mb-3 pb-3 text-center"
-                                style={{ letterSpacing: '1px', fontSize: '1.8rem' }}
-                            >
-                                ---------------Log in---------------
-                            </h3>
+                                <h3 className="fw-bold mb-3 pb-3 custom-heading" style={{ letterSpacing: '5px' }}>Log in</h3>
 
-                            <form onSubmit={handleSubmit} className="w-100">
+
+                                <form onSubmit={handleSubmit} className="w-100">
                                 <MDBInput
                                     wrapperClass="mb-4"
                                     label="Email address"
@@ -135,11 +134,15 @@ function Login() {
                                     value={formData.password}
                                 />
 
-                                <p className="small mb-1 text-end">
-                                    <a className="link-info" href="#" style={{ color: '#0077b6', textDecoration: 'none' }}>
-                                        Forgot password?
-                                    </a>
-                                </p>
+                                    <p className="small mb-1 text-end">
+                                        <span
+                                            onClick={handleForgotPasswordClick}
+                                            className="link-info"
+                                            style={{ color: '#0077b6', textDecoration: 'none', cursor: 'pointer' }}
+                                        >
+                                            Forgot password?
+                                        </span>
+                                    </p>
 
                                 <MDBBtn
                                     type="submit"
@@ -166,6 +169,7 @@ function Login() {
                                     Sign up
                                 </a>
                             </p>
+                            </div>
                         </div>
                     </MDBCol>
 
