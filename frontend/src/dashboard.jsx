@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 import './dash.css';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userEmail, setUserEmail] = useState('User');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const toggleDropdown = () => setDropdownOpen(prev => !prev);
 
   const [greeting, setGreeting] = useState('Welcome back');
 
@@ -81,9 +84,19 @@ const Dashboard = () => {
                 <span className="icon-bell">🔔</span>
                 <span className="notification-badge">3</span>
               </button>
-              <button className="icon-button profile-button">
-                <span className="icon-user">👤</span>
-              </button>
+              <div className="profile-container">
+                <button className="icon-button profile-button" onClick={toggleDropdown}>
+                  <span className="icon-user">👤</span>
+                </button>
+
+                {dropdownOpen && (
+                    <div className="dropdown-menu">
+                      <div className="dropdown-item" onClick={handleLogout}>
+                        Logout
+                      </div>
+                    </div>
+                )}
+              </div>
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import {jwtDecode} from 'jwt-decode';
 import React, { useState } from 'react';
 import {
   MDBBtn,
@@ -34,9 +35,11 @@ function Signup() {
     confirmPassword: '',
     birthday: ''
   });
-
   const [message, setMessage] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState(false);
+
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPassword = (password) =>
@@ -89,14 +92,20 @@ function Signup() {
       setLoading(true);
       setMessage('Signing you up...');
 
-      const formattedBirthday = formData.birthday
-          ? formData.birthday.toISOString().split('T')[0]
-          : '';
+      const birthDay = formData.birthday;
+
+      const normalizedBirthday = new Date(
+          birthDay.getFullYear(),
+          birthDay.getMonth(),
+          birthDay.getDate()
+      );
+      const formattedBirthday = `${normalizedBirthday.getFullYear()}-${String(normalizedBirthday.getMonth() + 1).padStart(2, '0')}-${String(normalizedBirthday.getDate()).padStart(2, '0')}`;
+
       const today = new Date();
-      const birthDate = new Date(formattedBirthday);
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      const is18Plus = age > 18 || (age === 18 && m >= 0);
+      const age = today.getFullYear() - normalizedBirthday.getFullYear();
+      const m = today.getMonth() - normalizedBirthday.getMonth();
+      const d = today.getDate() - normalizedBirthday.getDate();
+      const is18Plus = age > 18 || (age === 18 && (m > 0 || (m === 0 && d >= 0)));
 
       if (!is18Plus) {
         setErrors((prev) => ({ ...prev, birthday: 'You must be at least 18 years old.' }));
@@ -104,6 +113,7 @@ function Signup() {
         setLoading(false);
         return;
       }
+
 
       const signupResponse = await axios.post('/api/users/signup', {
         name: formData.name,
@@ -125,14 +135,34 @@ function Signup() {
         localStorage.setItem('token', loginResponse.data.token);
         localStorage.setItem('justSignedUp', 'true');
 
+        const decoded = jwtDecode(loginResponse.data.token);
+        const role = decoded.role;
+
         setTimeout(() => {
-          window.location.href = '/dashboard';
+          if (role === 'a') {
+            window.location.href = '/admin_dashboard';
+          } else if (role === 'c') {
+            window.location.href = '/dashboard';
+          } else if (role === 'p'){
+            window.location.href = '/photograph_dashboard';
+          } else if (role === 's'){
+            window.location.href = '/salesman_dashboard';
+          } else if (role === 'e'){
+            window.location.href = '/editor_dashboard';
+          }
         }, 1500);
       } else {
         setMessage(signupResponse.data || 'Unexpected signup response');
       }
     } catch (error) {
-      setMessage(error.response?.data || 'Error signing up!');
+      const errorMessage = error.response?.data || 'Error signing up!';
+
+      if (errorMessage.includes('User already exists!')) {
+        setModalMessage(errorMessage);
+        setErrorModal(true);
+      } else {
+        setMessage(errorMessage);
+      }
     } finally {
       setTimeout(() => setLoading(false), 2000);
     }
@@ -146,6 +176,19 @@ function Signup() {
               <MDBModalBody className="text-center py-4">
                 <MDBSpinner className="me-2" color="dark" />
                 {message.includes('Logging you in') ? 'Logging you in...' : 'Signing you up...'}
+              </MDBModalBody>
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
+
+        <MDBModal show={errorModal} setShow={setErrorModal} tabIndex="-1">
+          <MDBModalDialog centered>
+            <MDBModalContent>
+              <MDBModalBody className="text-center py-4">
+                <p className="fw-bold text-danger mb-3">{modalMessage}</p>
+                <MDBBtn color="dark" onClick={() => setErrorModal(false)}>
+                  Close
+                </MDBBtn>
               </MDBModalBody>
             </MDBModalContent>
           </MDBModalDialog>
@@ -223,7 +266,7 @@ function Signup() {
                           }
                       />
                       {formData.birthday && (
-                          <span className="text-dark">{formData.birthday.toISOString().split('T')[0]}</span>
+                          <span className="text-dark">{formData.birthday.toLocaleDateString('en-CA')}</span>
                       )}
                       {errors.birthday && (
                           <div className="text-danger small mb-3">{errors.birthday}</div>
@@ -238,7 +281,7 @@ function Signup() {
                   </MDBBtn>
                 </form>
 
-                {message && (
+                {message && !errorModal && (
                     <p className={`mt-2 text-center ${message.includes('success') ? 'text-success' : 'text-danger'}`}>
                       {message}
                     </p>

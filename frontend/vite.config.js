@@ -11,5 +11,8 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  optimizeDeps: {
+    include: ['jwt-decode'],
   }
 });

@@ -1,3 +1,4 @@
+import {jwtDecode} from 'jwt-decode';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'mdb-react-ui-kit/dist/css/mdb.min.css';
@@ -49,8 +50,25 @@ function Login() {
 
             if (response.ok) {
                 const data = await response.json();
-                localStorage.setItem('token', data.token);
-                navigate('/dashboard');
+                const token = data.token;
+
+                localStorage.setItem('token', token);
+
+                const decoded = jwtDecode(token);
+                const role = decoded.role;
+
+                // Navigate based on user role
+                if (role === 'a') {
+                    navigate('/Admindashboard');
+                } else if (role === 'c') {
+                    navigate('/dashboard');
+                } else if (role === 'p') {
+                    navigate('/photograph_dashboard');
+                } else if (role === 's') {
+                    navigate('/salesman_dashboard');
+                } else if (role === 'e') {
+                    navigate('/editor_dashboard');
+                }
             } else {
                 alert('Invalid email or password');
             }
@@ -61,6 +79,7 @@ function Login() {
             setIsLoggingIn(false); // Stop loading
         }
     };
+
 
     return (
         <>

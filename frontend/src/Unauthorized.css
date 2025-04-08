@@ -1,0 +1,42 @@
+.unauthorized-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #f7f7f7;
+}
+
+.unauthorized-card {
+    background: white;
+    padding: 2rem 3rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.unauthorized-card h1 {
+    font-size: 2rem;
+    color: #d9534f;
+    margin-bottom: 1rem;
+}
+
+.unauthorized-card p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #555;
+}
+
+.back-button {
+    background-color: #343a40;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.4rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.back-button:hover {
+    background-color: #212529;
+}
