@@ -12,6 +12,7 @@ import Unauthorized from './Unauthorized.jsx';
 import UserSettings from "./UserSettings.jsx";
 import ResetPassword from './resetPass.jsx';
 import ForgetPass from "./ForgetPass.jsx";
+import Setting from "./UserSettings.jsx"
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
@@ -37,6 +38,14 @@ createRoot(document.getElementById('root')).render(
                         <ProtectedRoute>
                             <Dashboard />
                         </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/UserSettings"
+                    element={
+                    <ProtectedRoute>
+                        <Setting />
+                    </ProtectedRoute>
                     }
                 />
                 <Route

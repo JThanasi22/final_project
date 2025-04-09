@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-
+import java.util.concurrent.ExecutionException;
 
 
 @RestController
@@ -133,6 +133,37 @@ public class AuthController {
             return ResponseEntity.status(500).body("Failed to process reset request");
         }
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(@RequestHeader("Authorization") String authHeader) throws Exception {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String token = authHeader.substring(7); // Strip "Bearer "
+        String email = JwtUtil.extractEmail(token);
+        User user = firestoreService.getUserByEmail(email);
+
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<String> updateUser(@RequestBody User updatedUser,
+                                             @RequestHeader("Authorization") String token) {
+        String email = JwtUtil.extractEmail(token.replace("Bearer ", ""));
+        try {
+            firestoreService.updateUserFields(email, updatedUser);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return ResponseEntity.ok("User updated");
+    }
+
+
 
 
 

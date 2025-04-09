@@ -8,6 +8,7 @@ import main.model.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +47,28 @@ public class FirestoreService {
 
         return "User registered with ID: " + user.getId();
     }
+
+    public void updateUserFields(String email, User updatedUser) throws ExecutionException, InterruptedException {
+        DocumentSnapshot userDoc = getUserDocByEmail(email);
+        if (userDoc != null) {
+            DocumentReference docRef = userDoc.getReference();
+
+            Map<String, Object> updates = new HashMap<>();
+            if (updatedUser.getName() != null) updates.put("name", updatedUser.getName());
+            if (updatedUser.getSurname() != null) updates.put("surname", updatedUser.getSurname());
+            if (updatedUser.getPhone() != null) updates.put("phone", updatedUser.getPhone());
+
+            if (!updates.isEmpty()) {
+                docRef.update(updates).get();
+                System.out.println("✅ Updated fields for: " + email);
+            } else {
+                System.out.println("⚠️ No updatable fields found in request.");
+            }
+        } else {
+            System.out.println("❌ User not found: " + email);
+        }
+    }
+
 
     public boolean validateUser(String email, String rawPassword) throws ExecutionException, InterruptedException {
         DocumentSnapshot doc = getUserDocByEmail(email);
@@ -107,11 +130,6 @@ public class FirestoreService {
         );
 
         db.collection("reset_codes").document(email).set(data).get();
-    }
-
-
-    public void confirmResetToken(String token) throws ExecutionException, InterruptedException {
-        db.collection("reset_tokens").document(token).update("confirmed", true).get();
     }
 
     public DocumentSnapshot getResetCode(String email) throws ExecutionException, InterruptedException {
