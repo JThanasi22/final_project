@@ -99,28 +99,28 @@ public class FirestoreService {
 
     // ----------------- Password Reset Tokens -----------------
 
-    public void saveResetToken(String email, String token, long expiresAt) throws ExecutionException, InterruptedException {
+    public void saveResetCode(String email, String code, long expiresAt) throws ExecutionException, InterruptedException {
         Map<String, Object> data = Map.of(
                 "email", email,
-                "token", token,
-                "expiresAt", expiresAt,
-                "confirmed", false
+                "code", code,
+                "expiresAt", expiresAt
         );
-        db.collection("reset_tokens").document(token).set(data).get();
+
+        db.collection("reset_codes").document(email).set(data).get();
     }
+
 
     public void confirmResetToken(String token) throws ExecutionException, InterruptedException {
         db.collection("reset_tokens").document(token).update("confirmed", true).get();
     }
 
-    public DocumentSnapshot getResetToken(String token) throws ExecutionException, InterruptedException {
-        DocumentReference docRef = db.collection(TOKEN_COLLECTION).document(token);
-        DocumentSnapshot snapshot = docRef.get().get();
-        return snapshot.exists() ? snapshot : null;
+    public DocumentSnapshot getResetCode(String email) throws ExecutionException, InterruptedException {
+        return db.collection("reset_codes").document(email).get().get();
     }
 
-    public void deleteResetToken(String token) throws ExecutionException, InterruptedException {
-        db.collection(TOKEN_COLLECTION).document(token).delete().get();
-        System.out.println("🗑️ Reset token deleted: " + token);
+    public void deleteResetCode(String email) throws ExecutionException, InterruptedException {
+        db.collection("reset_codes").document(email).delete().get();
+        System.out.println("🗑️ Reset code deleted for: " + email);
     }
+
 }

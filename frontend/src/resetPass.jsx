@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     MDBModal,
@@ -10,48 +10,47 @@ import {
 import LoginBanner from "./assets/LoginBanner.png";
 
 const ResetPassword = () => {
+    const [email, setEmail] = useState(() =>
+        new URLSearchParams(window.location.search).get("email") || ""
+    );
+    const [code, setCode] = useState("");
     const [newPassword, setNewPassword] = useState("");
-    const [status, setStatus] = useState("Checking token...");
+    const [status, setStatus] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
-
-    const token = new URLSearchParams(window.location.search).get("token");
+    const [codeVerified, setCodeVerified] = useState(false);
     const navigate = useNavigate();
 
-    // 🔄 Confirm token on load
-    useEffect(() => {
-        const confirmToken = async () => {
-            try {
-                const res = await fetch("http://localhost:8080/api/users/confirm-reset", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token }),
-                });
+    const handleVerifyCode = async () => {
+        setStatus("Verifying code...");
+        try {
+            const res = await fetch("http://localhost:8080/api/users/verify-reset-code", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, code }),
+            });
 
-                if (res.ok) {
-                    setStatus("Token confirmed. Please reset your password.");
-                } else {
-                    const error = await res.text();
-                    setStatus("Token error: " + error);
-                }
-            } catch (err) {
-                setStatus("Token confirmation failed.");
+            if (res.ok) {
+                setCodeVerified(true);
+                setStatus("Code verified. You can now set a new password.");
+            } else {
+                const error = await res.text();
+                setStatus("Invalid or expired code: " + error);
             }
-        };
+        } catch (err) {
+            console.error(err);
+            setStatus("Something went wrong while verifying code.");
+        }
+    };
 
-        if (token) confirmToken();
-        else setStatus("No reset token provided.");
-    }, [token]);
-
-    // 🟢 Submit new password
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setStatus("Submitting...");
+        setStatus("Submitting new password...");
 
         try {
             const res = await fetch("http://localhost:8080/api/users/reset-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, newPassword }),
+                body: JSON.stringify({ email, code, newPassword }),
             });
 
             if (res.ok) {
@@ -86,31 +85,56 @@ const ResetPassword = () => {
 
                             <h3 className="fw-bold mb-3 pb-3 custom-heading" style={{ letterSpacing: '5px' }}>Reset Password</h3>
 
-                            {status.includes("Token confirmed") && (
-                                <form onSubmit={handleSubmit} className="w-100">
-                                    <MDBInput
-                                        wrapperClass="mb-4"
-                                        label="New Password"
-                                        type="password"
-                                        size="lg"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        required
-
-                                    />
+                            <form onSubmit={codeVerified ? handleSubmit : (e) => e.preventDefault()} className="w-100">
+                                <MDBInput
+                                    wrapperClass="mb-3"
+                                    label="Reset Code"
+                                    type="text"
+                                    size="lg"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value)}
+                                    required
+                                />
+                                {!codeVerified && (
                                     <MDBBtn
-                                        type="submit"
+                                        type="button"
                                         className="mb-4 w-100"
                                         color="dark"
                                         size="lg"
-                                        style={{ textTransform: 'none', borderRadius: '25px' }}>
-                                        Reset Password
+                                        onClick={handleVerifyCode}
+                                        style={{ textTransform: 'none', borderRadius: '25px' }}
+                                    >
+                                        Verify Code
                                     </MDBBtn>
-                                </form>
-                            )}
+                                )}
+
+                                {codeVerified && (
+                                    <>
+                                        <MDBInput
+                                            wrapperClass="mb-4"
+                                            label="New Password"
+                                            type="password"
+                                            size="lg"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            required
+                                        />
+                                        <MDBBtn
+                                            type="submit"
+                                            className="mb-4 w-100"
+                                            color="dark"
+                                            size="lg"
+                                            style={{ textTransform: 'none', borderRadius: '25px' }}
+                                        >
+                                            Reset Pass
+                                        </MDBBtn>
+                                    </>
+                                )}
+                            </form>
 
                             <p className="text-center">{status}</p>
                         </div>
+
                         <MDBModal show={modalOpen} setShow={setModalOpen} tabIndex="-1">
                             <MDBModalDialog centered>
                                 <MDBModalContent>
@@ -137,5 +161,3 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
-
-

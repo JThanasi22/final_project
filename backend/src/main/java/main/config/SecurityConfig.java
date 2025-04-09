@@ -29,7 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/signup").permitAll()
                         .requestMatchers("/api/users/login").permitAll()
                         .requestMatchers("/api/users/request-reset").permitAll()
-                        .requestMatchers("/api/users/confirm-reset").permitAll()
+                        .requestMatchers("/api/users/verify-reset-code").permitAll()
                         .requestMatchers("/api/users/reset-password").permitAll()
                         .anyRequest().authenticated()
                 );

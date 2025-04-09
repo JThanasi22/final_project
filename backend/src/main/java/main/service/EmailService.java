@@ -11,9 +11,9 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    public void sendResetConfirmationLink(String toEmail, String confirmationLink) {
-        String subject = "Reset Your Password";
-        String body = "Click the link below to reset your password:\n\n" + confirmationLink;
+    public void sendResetCode(String toEmail, String code) {
+        String subject = "Your Password Reset Code";
+        String body = "Use this code to reset your password: " + code + "\n\nThis code will expire in 15 minutes.";
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
@@ -21,6 +21,7 @@ public class EmailService {
         message.setText(body);
 
         mailSender.send(message);
-        System.out.println("📧 Reset confirmation email sent to: " + toEmail);
+        System.out.println("📧 Reset code sent to: " + toEmail);
     }
+
 }

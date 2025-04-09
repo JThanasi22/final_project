@@ -11,8 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 
 
@@ -61,46 +61,54 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
-        String token = payload.get("token");
+        String email = payload.get("email");
+        String code = payload.get("code");
         String newPassword = payload.get("newPassword");
 
         try {
-            DocumentSnapshot tokenDoc = firestoreService.getResetToken(token);
-            if (tokenDoc == null || !tokenDoc.exists() ||
-                    System.currentTimeMillis() > tokenDoc.getLong("expiresAt") ||
-                    !tokenDoc.getBoolean("confirmed")) {
-                return ResponseEntity.badRequest().body("Token invalid, expired or not confirmed");
+            DocumentSnapshot doc = firestoreService.getResetCode(email);
+            if (doc == null || !doc.exists()) {
+                return ResponseEntity.badRequest().body("No code found for this email.");
             }
 
-            String email = tokenDoc.getString("email");
-            String hashedPassword = passwordEncoder.encode(newPassword);
+            String storedCode = doc.getString("code");
+            Long expiresAt = doc.getLong("expiresAt");
 
+            if (!code.equals(storedCode)) return ResponseEntity.badRequest().body("Incorrect code");
+            if (System.currentTimeMillis() > expiresAt) return ResponseEntity.badRequest().body("Code expired");
+
+            String hashedPassword = passwordEncoder.encode(newPassword);
             firestoreService.updateUserPassword(email, hashedPassword);
-            firestoreService.deleteResetToken(token);
+            firestoreService.deleteResetCode(email);
 
             return ResponseEntity.ok("Password successfully reset.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error during password reset");
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error resetting password");
         }
     }
 
 
-    @PostMapping("/confirm-reset")
-    public ResponseEntity<?> confirmResetToken(@RequestBody Map<String, String> payload) {
-        String token = payload.get("token");
 
-        try {
-            DocumentSnapshot tokenDoc = firestoreService.getResetToken(token);
-            if (tokenDoc == null || !tokenDoc.exists() || System.currentTimeMillis() > tokenDoc.getLong("expiresAt")) {
-                return ResponseEntity.badRequest().body("Token invalid or expired");
-            }
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> payload) throws Exception {
+        String email = payload.get("email");
+        String code = payload.get("code");
 
-            firestoreService.confirmResetToken(token);
-            return ResponseEntity.ok("Token confirmed");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error confirming token");
+        DocumentSnapshot doc = firestoreService.getResetCode(email);
+        if (doc == null || !doc.exists()) {
+            return ResponseEntity.badRequest().body("Invalid request");
         }
+
+        String storedCode = doc.getString("code");
+        Long expiresAt = doc.getLong("expiresAt");
+
+        if (!code.equals(storedCode)) return ResponseEntity.badRequest().body("Incorrect code");
+        if (System.currentTimeMillis() > expiresAt) return ResponseEntity.badRequest().body("Code expired");
+
+        return ResponseEntity.ok("Code valid");
     }
+
 
     @PostMapping("/request-reset")
     public ResponseEntity<?> requestReset(@RequestBody Map<String, String> payload) {
@@ -108,21 +116,24 @@ public class AuthController {
 
         try {
             User user = firestoreService.getUserByEmail(email);
-            if (user == null) return ResponseEntity.badRequest().body("User not found");
+            if (user == null) {
+                return ResponseEntity.badRequest().body("User not found");
+            }
 
-            String token = UUID.randomUUID().toString();
+            // 👇 Generate 6-digit code
+            String code = String.format("%06d", new Random().nextInt(999999));
             long expiresAt = System.currentTimeMillis() + 15 * 60 * 1000;
 
-            firestoreService.saveResetToken(email, token, expiresAt);
+            firestoreService.saveResetCode(email, code, expiresAt);
+            emailService.sendResetCode(email, code); // 🔧 You’ll write this method next
 
-            String confirmationLink = "http://localhost:5173/reset-password?token=" + token;
-            emailService.sendResetConfirmationLink(email, confirmationLink);
-
-            return ResponseEntity.ok("Reset confirmation link sent");
+            return ResponseEntity.ok("Code sent to email");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Internal server error");
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to process reset request");
         }
     }
+
 
 
 }
