@@ -12,8 +12,8 @@ public class EmailService {
     private JavaMailSender mailSender;
 
     public void sendResetConfirmationLink(String toEmail, String confirmationLink) {
-        String subject = "Password Reset Confirmation";
-        String body = "Click the link below to confirm your password reset:\n\n" + confirmationLink;
+        String subject = "Reset Your Password";
+        String body = "Click the link below to reset your password:\n\n" + confirmationLink;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);

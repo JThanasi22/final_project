@@ -115,7 +115,7 @@ public class AuthController {
 
             firestoreService.saveResetToken(email, token, expiresAt);
 
-            String confirmationLink = "http://localhost:5173/confirm-reset?token=" + token;
+            String confirmationLink = "http://localhost:5173/reset-password?token=" + token;
             emailService.sendResetConfirmationLink(email, confirmationLink);
 
             return ResponseEntity.ok("Reset confirmation link sent");
