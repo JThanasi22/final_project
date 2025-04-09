@@ -20,7 +20,7 @@ const ForgetPass = () => {
             });
 
             if (res.ok) {
-                setStatus("Reset link sent! Check your inbox. You may now close this page.");
+                setStatus("Reset link sent! Check your inbox and Spam folder. You may now close this page.");
             } else {
                 setStatus("Could not send reset link.");
             }

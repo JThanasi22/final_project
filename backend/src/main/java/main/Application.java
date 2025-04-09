@@ -19,7 +19,7 @@ public class Application {
 
     private static void initializeFirebase() {
         try {
-            FileInputStream serviceAccount = new FileInputStream("/Users/jordthanasi/Documents/final_project/backend/src/main/resources/firebase-config.json");
+            FileInputStream serviceAccount = new FileInputStream("backend/src/main/resources/firebase-config.json");
 
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
