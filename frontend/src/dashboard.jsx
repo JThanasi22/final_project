@@ -1,30 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Select, MenuItem, Grid, Paper, LinearProgress } from '@mui/material';
 import { jwtDecode } from 'jwt-decode';
-import { CSSTransition } from 'react-transition-group';
-
-import BellIcon from './icons/bell.png';
-import MessengerIcon from './icons/messenger.png';
-import CaretIcon from './icons/caret.png';
-import PlusIcon from './icons/plus.png';
-import CogIcon from './icons/cog.png';
-
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import EventIcon from '@mui/icons-material/Event';
+import PersonIcon from '@mui/icons-material/Person';
 import './dash.css';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userEmail, setUserEmail] = useState('User');
   const [greeting, setGreeting] = useState('Welcome back');
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -40,259 +24,291 @@ const Dashboard = () => {
         }
       } catch (err) {
         console.error('Invalid token:', err);
-        localStorage.removeItem('token');
-        navigate('/login');
       }
-    } else {
-      navigate('/login');
     }
   }, []);
 
   return (
-      <div className="dashboard-container">
-        <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-          <div className="sidebar-logo">
-            <h2><span className="studio-text">Studio</span> <span className="studio-number">21</span></h2>
-          </div>
-          <div className="sidebar-menu">
-            <div className="nav-item active"><span className="nav-label">Dashboard</span></div>
-            <div className="nav-item"><span className="nav-label">Projects</span></div>
-            <div className="nav-item"><span className="nav-label">Messaging</span></div>
-            <div className="nav-item"><span className="nav-label">Billing</span></div>
-            <div className="nav-item"><span className="nav-label">Media</span></div>
-            <div className="nav-item"><span className="nav-label">Appointments</span></div>
-          </div>
-        </div>
+    <Box className="dashboard-container" sx={{ 
+      p: 3, 
+      minHeight: '100vh',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <Box className="content-section" sx={{ width: '100%', flex: 1 }}>
+        <Paper elevation={0} sx={{
+          background: '#fff',
+          borderRadius: '12px',
+          p: 3,
+          mb: 3,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          borderLeft: '4px solid #4a6fdc',
+          width: '100%'
+        }}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+            {greeting}, {userEmail}!
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Here's what's happening with your projects today.
+          </Typography>
+        </Paper>
 
-        <div className="main-content">
-          <div className="top-navbar">
-            <div className="navbar-left">
-              <button className="menu-toggle" onClick={toggleSidebar}>
-                <span className="icon-menu">☰</span>
-              </button>
-              <div className="navbar-logo"><h2>Studio</h2></div>
-              <div className="search-bar">
-                <input type="text" placeholder="Search..." />
-              </div>
-            </div>
+        <Grid container spacing={3} sx={{ width: '100%', m: 0 }}>
+          <Grid item xs={12} lg={8} sx={{ width: '100%' }}>
+            <Paper elevation={0} sx={{
+              background: '#fff',
+              borderRadius: '12px',
+              p: 3,
+              height: '100%',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              width: '100%'
+            }}>
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+                Project Status
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
+                <ProjectStatus 
+                  label="Wedding Shoot" 
+                  percent={75} 
+                  dueDate="Oct 15, 2023"
+                  team={["John D.", "Sarah M."]}
+                />
+                <ProjectStatus 
+                  label="Corporate Event" 
+                  percent={45} 
+                  dueDate="Oct 20, 2023"
+                  team={["Mike R.", "Emily J."]}
+                />
+                <ProjectStatus 
+                  label="Product Photoshoot" 
+                  percent={90} 
+                  dueDate="Oct 12, 2023"
+                  team={["Lisa K.", "Tom B."]}
+                />
+              </Box>
+            </Paper>
+          </Grid>
 
-            <ToggleNavbar>
-              <NavItem icon={<img src={BellIcon} alt="Bell" style={{ width: 20, height: 20 }} />}>
-                Notification
-              </NavItem>
+          <Grid item xs={12} lg={4} sx={{ width: '100%' }}>
+            <Paper elevation={0} sx={{
+              background: '#fff',
+              borderRadius: '12px',
+              p: 3,
+              height: '100%',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              width: '100%'
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mb: 3,
+                width: '100%'
+              }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Today's Schedule
+                </Typography>
+                <EventIcon color="action" />
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+                <AppointmentItem 
+                  time="10:00 AM" 
+                  title="Client Consultation" 
+                  with="John Smith"
+                  location="Studio A"
+                />
+                <AppointmentItem 
+                  time="2:30 PM" 
+                  title="Project Review" 
+                  with="Emily Johnson"
+                  location="Conference Room"
+                />
+                <AppointmentItem 
+                  time="4:15 PM" 
+                  title="Portfolio Review" 
+                  with="Creative Team"
+                  location="Meeting Room B"
+                />
+              </Box>
+            </Paper>
+          </Grid>
 
-              <NavItem icon={<img src={MessengerIcon} alt="Messenger" style={{ width: 20, height: 20 }} />}>
-                Messages
-              </NavItem>
-
-              <NavItem icon={<img src={CaretIcon} alt="Caret" style={{ width: 20, height: 20 }} />}>
-                <DropdownMenu onLogout={handleLogout} />
-                More
-              </NavItem>
-            </ToggleNavbar>
-
-          </div>
-
-          <div className="dashboard-content">
-            <div className="content-section left-section">
-              <div className="welcome-card">
-                <h2>{greeting}, {userEmail}!</h2>
-                <p>Here's what's happening with your projects today.</p>
-              </div>
-
-              <div className="status-card">
-                <h3>Project Status</h3>
-                <div className="status-bars">
-                  <ProjectStatus label="Wedding Shoot" percent={75} />
-                  <ProjectStatus label="Corporate Event" percent={45} />
-                  <ProjectStatus label="Product Photoshoot" percent={90} />
-                </div>
-              </div>
-
-              <div className="appointments-card">
-                <h3>Upcoming Appointments</h3>
-                <div className="appointment-list">
-                  <AppointmentItem time="10:00 AM" title="Client Consultation" with="John Smith" />
-                  <AppointmentItem time="2:30 PM" title="Project Review" with="Emily Johnson" />
-                  <AppointmentItem time="4:15 PM" title="Portfolio Review" with="Creative Team" />
-                </div>
-              </div>
-            </div>
-
-            <div className="content-section right-section">
-              <div className="projects-card">
-                <div className="card-header">
-                  <h3>Your Projects</h3>
-                  <select className="project-filter">
-                    <option>All Projects</option>
-                    <option>Active</option>
-                    <option>Completed</option>
-                  </select>
-                </div>
-                <div className="project-list">
-                  <ProjectItem title="Wedding Photography" client="Rebecca & Tom" date="Oct 15, 2023" status="In Progress" statusColor="#4a6fdc" />
-                  <ProjectItem title="Corporate Headshots" client="Tech Solutions Inc." date="Oct 10, 2023" status="Completed" statusColor="#50c878" />
-                  <ProjectItem title="Product Launch" client="Fashion Brand" date="Oct 20, 2023" status="Pending" statusColor="#f0ad4e" />
-                  <ProjectItem title="Family Portrait" client="Williams Family" date="Oct 25, 2023" status="In Progress" statusColor="#4a6fdc" />
-                  <ProjectItem title="Website Redesign" client="Local Restaurant" date="Oct 30, 2023" status="Pending" statusColor="#f0ad4e" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          <Grid item xs={12} sx={{ width: '100%' }}>
+            <Paper elevation={0} sx={{
+              background: '#fff',
+              borderRadius: '12px',
+              p: 3,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              width: '100%'
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mb: 3,
+                width: '100%'
+              }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Active Projects
+                </Typography>
+                <Select
+                  size="small"
+                  defaultValue="all"
+                  sx={{ minWidth: 120 }}
+                >
+                  <MenuItem value="all">All Projects</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                </Select>
+              </Box>
+              <Grid container spacing={2} sx={{ width: '100%', m: 0 }}>
+                {['Wedding Photography', 'Corporate Headshots', 'Product Launch'].map((project, index) => (
+                  <Grid item xs={12} md={4} key={index} sx={{ width: '100%' }}>
+                    <ProjectItem 
+                      title={project}
+                      client={['Rebecca & Tom', 'Tech Solutions Inc.', 'Fashion Brand'][index]}
+                      date={['Oct 15, 2023', 'Oct 10, 2023', 'Oct 20, 2023'][index]}
+                      status={['In Progress', 'Completed', 'Pending'][index]}
+                      statusColor={['#4a6fdc', '#50c878', '#f0ad4e'][index]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
   );
 };
 
-// Components
-function ToggleNavbar({ children }) {
-  const [showNavItems, setShowNavItems] = useState(false);
-  const containerRef = useRef(null);
-
-  return (
-      <div className="toggle-navbar" ref={containerRef}>
-        <button
-            className="main-toggle-button"
-            onClick={() => setShowNavItems(!showNavItems)}
-        >
-          More
-        </button>
-
-        {showNavItems && (
-            <div className="navbar-items-exept">
-              {children}
-            </div>
-        )}
-      </div>
-  );
-}
-
-function NavItem({ icon, children }) {
-  const [open, setOpen] = useState(false);
-
-  // Check if there's a DropdownMenu as a child
-  const hasDropdown = React.Children.toArray(children).some(
-      child => React.isValidElement(child) && child.type === DropdownMenu
-  );
-
-  const labelText = React.Children.toArray(children).filter(
-      child => typeof child === 'string' || typeof child === 'number'
-  );
-
-  return (
-      <li className="nav-item">
-        <button className="icon-button" onClick={() => setOpen(!open)}>
-          <div className="nav-icon-text">
-            {icon}
-            <span className="nav-text">{labelText}</span>
-          </div>
-        </button>
-
-        {open && hasDropdown && React.Children.map(children, child =>
-            React.isValidElement(child) && child.type === DropdownMenu ? child : null
-        )}
-      </li>
-  );
-}
-
-function DropdownMenu({ onLogout }) {
-  const [activeMenu, setActiveMenu] = useState('main');
-  const [menuHeight, setMenuHeight] = useState(null);
-  const dropdownRef = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (dropdownRef.current) {
-      setMenuHeight(dropdownRef.current.firstChild.offsetHeight);
-    }
-  }, []);
-
-  function calcHeight(el) {
-    const height = el.offsetHeight;
-    setMenuHeight(height);
-  }
-
-  function DropdownItem({ children, leftIcon, onClick, className = '', style = {} }) {
-    return (
-        <button
-            className={`menu-item ${className}`}
-            onClick={onClick}
-            style={{ color: 'black', ...style }}
-        >
-          {leftIcon && <span className="icon-left">{leftIcon}</span>}
-          <span className="item-text">{children}</span>
-        </button>
-    );
-  }
-
-
-  return (
-      <div className="dropdown" style={{ height: menuHeight }} ref={dropdownRef}>
-        <CSSTransition
-            in={activeMenu === 'main'}
-            timeout={500}
-            classNames="menu-primary"
-            unmountOnExit
-            onEnter={calcHeight}
-        >
-          <div className="menu">
-            <DropdownItem
-                leftIcon={<img src={CogIcon} alt="Settings" style={{ width: 20, height: 20 }} />}
-                onClick={() => navigate('/settings')}
-                style={{ color: 'black' }}
-            >
-              Settings
-            </DropdownItem>
-
-            <DropdownItem
-                leftIcon={<span>🚪</span>}
-                onClick={onLogout}
-                style={{ color: 'black' }}
-            >
-              Logout
-            </DropdownItem>
-          </div>
-        </CSSTransition>
-      </div>
-  );
-}
-
-
-const ProjectStatus = ({ label, percent }) => (
-    <div className="status-item">
-      <div className="status-info">
-        <span>{label}</span>
-        <span>{percent}%</span>
-      </div>
-      <div className="progress-bar">
-        <div className="progress" style={{ width: `${percent}%` }}></div>
-      </div>
-    </div>
+const ProjectStatus = ({ label, percent, dueDate, team }) => (
+  <Box sx={{ width: '100%' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+      <Box>
+        <Typography variant="h6" sx={{ mb: 0.5 }}>{label}</Typography>
+        <Box sx={{ display: 'flex', gap: 2, color: 'text.secondary', fontSize: '0.875rem' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <AccessTimeIcon fontSize="small" />
+            <span>Due {dueDate}</span>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <PersonIcon fontSize="small" />
+            <span>{team.join(', ')}</span>
+          </Box>
+        </Box>
+      </Box>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          color: percent >= 90 ? '#50c878' : percent >= 50 ? '#4a6fdc' : '#f0ad4e'
+        }}
+      >
+        {percent}%
+      </Typography>
+    </Box>
+    <LinearProgress 
+      variant="determinate" 
+      value={percent} 
+      sx={{
+        height: 8,
+        borderRadius: 4,
+        bgcolor: '#f0f0f0',
+        '& .MuiLinearProgress-bar': {
+          bgcolor: percent >= 90 ? '#50c878' : percent >= 50 ? '#4a6fdc' : '#f0ad4e',
+          borderRadius: 4
+        }
+      }}
+    />
+  </Box>
 );
 
-const AppointmentItem = ({ time, title, with: withWhom }) => (
-    <div className="appointment-item">
-      <div className="appointment-time">{time}</div>
-      <div className="appointment-details">
-        <h4>{title}</h4>
-        <p>with {withWhom}</p>
-      </div>
-    </div>
+const AppointmentItem = ({ time, title, with: withWhom, location }) => (
+  <Paper elevation={0} sx={{ 
+    display: 'flex', 
+    gap: 2, 
+    p: 2,
+    bgcolor: '#f8f9fa',
+    borderRadius: '8px',
+    border: '1px solid #e9ecef'
+  }}>
+    <Box sx={{ 
+      minWidth: '80px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      borderRight: '1px solid #e9ecef',
+      pr: 2
+    }}>
+      <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
+        {time.split(' ')[0]}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        {time.split(' ')[1]}
+      </Typography>
+    </Box>
+    <Box>
+      <Typography variant="body1" sx={{ fontWeight: 500 }}>{title}</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+        with {withWhom}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ 
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5
+      }}>
+        <EventIcon fontSize="small" />
+        {location}
+      </Typography>
+    </Box>
+  </Paper>
 );
 
 const ProjectItem = ({ title, client, date, status, statusColor }) => (
-    <div className="project-item">
-      <div className="project-info">
-        <h4>{title}</h4>
-        <div className="client-info">
-          <span className="client-name">{client}</span>
-          <span className="project-date">{date}</span>
-        </div>
-      </div>
-      <div className="project-status" style={{ backgroundColor: statusColor }}>
+  <Paper elevation={0} sx={{ 
+    p: 2,
+    bgcolor: '#f8f9fa',
+    borderRadius: '8px',
+    border: '1px solid #e9ecef',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column'
+  }}>
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="h6" sx={{ mb: 1 }}>{title}</Typography>
+      <Box sx={{ 
+        bgcolor: statusColor,
+        color: '#fff',
+        px: 1.5,
+        py: 0.5,
+        borderRadius: '16px',
+        fontSize: '0.875rem',
+        display: 'inline-block'
+      }}>
         {status}
-      </div>
-    </div>
+      </Box>
+    </Box>
+    <Box sx={{ mt: 'auto' }}>
+      <Typography variant="body2" color="text.secondary" sx={{ 
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        mb: 0.5
+      }}>
+        <PersonIcon fontSize="small" />
+        Client: {client}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ 
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5
+      }}>
+        <AccessTimeIcon fontSize="small" />
+        Due: {date}
+      </Typography>
+    </Box>
+  </Paper>
 );
 
 export default Dashboard;
