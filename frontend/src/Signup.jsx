@@ -194,10 +194,10 @@ function Signup() {
           </MDBModalDialog>
         </MDBModal>
 
-        <MDBContainer fluid className="signup-container">
+        <MDBContainer fluid>
           <MDBRow>
-            <MDBCol sm="6" className="d-flex align-items-start justify-content-center">
-              <div className="w-75 form-container">
+            <MDBCol sm="6" className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+              <div className="w-75">
                 <div className="text-center mb-4">
                   <h2 className="fw-bold mb-3" style={{ fontSize: '2.7rem', color: '#161819' }}>
                     Your Studio, Your Vision

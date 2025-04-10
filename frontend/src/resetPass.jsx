@@ -94,6 +94,7 @@ const ResetPassword = () => {
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
+                                    disabled={codeVerified}
                                 />
                                 {!codeVerified && (
                                     <MDBBtn
