@@ -196,8 +196,8 @@ function Signup() {
 
         <MDBContainer fluid>
           <MDBRow>
-            <MDBCol sm="6" className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
-              <div className="w-75">
+            <MDBCol sm="6" className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', overflow: 'auto' }}>
+              <div className="w-75" style={{ maxHeight: '100vh', overflowY: 'auto', padding: '20px 0' }}>
                 <div className="text-center mb-4">
                   <h2 className="fw-bold mb-3" style={{ fontSize: '2.7rem', color: '#161819' }}>
                     Your Studio, Your Vision

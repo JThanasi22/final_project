@@ -195,6 +195,8 @@
   padding: 25px;
   flex: 1;
   gap: 25px;
+  overflow-y: auto;
+  max-height: calc(100vh - 64px); /* Subtract the height of the navbar */
 }
 
 .content-section {
