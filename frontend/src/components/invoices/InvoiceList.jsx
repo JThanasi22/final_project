@@ -22,6 +22,7 @@ import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import Layout from '../Layout';
 
 const mockInvoices = [
     {
@@ -122,190 +123,192 @@ const InvoiceList = () => {
     });
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Typography variant="h5" component="h2">
-                    Invoices
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                        select
-                        size="small"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        sx={{ minWidth: 150 }}
-                    >
-                        <MenuItem value="ALL">All Invoices</MenuItem>
-                        <MenuItem value="PAID">Paid</MenuItem>
-                        <MenuItem value="PENDING">Pending</MenuItem>
-                        <MenuItem value="OVERDUE">Overdue</MenuItem>
-                    </TextField>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<AddIcon />}
-                        onClick={() => handleOpenDialog({
-                            clientName: '',
-                            amount: 0,
-                            tax: 0,
-                            total: 0,
-                            status: 'Pending',
-                            dueDate: '',
-                        }, 'create')}
-                    >
-                        New Invoice
-                    </Button>
-                </Box>
-            </Box>
-
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Invoice ID</TableCell>
-                            <TableCell>Client</TableCell>
-                            <TableCell align="right">Amount</TableCell>
-                            <TableCell align="right">Tax</TableCell>
-                            <TableCell align="right">Total</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell>Due Date</TableCell>
-                            <TableCell>Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredInvoices.map((invoice) => (
-                            <TableRow key={invoice.id}>
-                                <TableCell>{invoice.id}</TableCell>
-                                <TableCell>{invoice.clientName}</TableCell>
-                                <TableCell align="right">${invoice.amount}</TableCell>
-                                <TableCell align="right">${invoice.tax}</TableCell>
-                                <TableCell align="right">${invoice.total}</TableCell>
-                                <TableCell>
-                                    <Chip
-                                        label={invoice.status}
-                                        color={getStatusColor(invoice.status)}
-                                        size="small"
-                                    />
-                                </TableCell>
-                                <TableCell>{invoice.dueDate}</TableCell>
-                                <TableCell>
-                                    <Button
-                                        size="small"
-                                        startIcon={<VisibilityIcon />}
-                                        onClick={() => handleOpenDialog(invoice, 'view')}
-                                    >
-                                        View
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        startIcon={<EditIcon />}
-                                        onClick={() => handleOpenDialog(invoice, 'edit')}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        color="error"
-                                        startIcon={<DeleteIcon />}
-                                        onClick={() => handleDelete(invoice.id)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-
-            <Dialog
-                open={openDialog}
-                onClose={handleCloseDialog}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>
-                    {dialogMode === 'view' ? 'Invoice Details' :
-                        dialogMode === 'edit' ? 'Edit Invoice' : 'Create Invoice'}
-                </DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <TextField
-                            label="Client Name"
-                            value={selectedInvoice?.clientName || ''}
-                            onChange={(e) => setSelectedInvoice({
-                                ...selectedInvoice,
-                                clientName: e.target.value
-                            })}
-                            disabled={dialogMode === 'view'}
-                        />
-                        <TextField
-                            label="Amount"
-                            type="number"
-                            value={selectedInvoice?.amount || ''}
-                            onChange={(e) => {
-                                const amount = Number(e.target.value);
-                                const tax = amount * 0.1;
-                                setSelectedInvoice({
-                                    ...selectedInvoice,
-                                    amount,
-                                    tax,
-                                    total: amount + tax
-                                });
-                            }}
-                            disabled={dialogMode === 'view'}
-                        />
-                        <TextField
-                            label="Tax"
-                            type="number"
-                            value={selectedInvoice?.tax || ''}
-                            disabled
-                        />
-                        <TextField
-                            label="Total"
-                            type="number"
-                            value={selectedInvoice?.total || ''}
-                            disabled
-                        />
+        <Layout>
+            <Box sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                    <Typography variant="h5" component="h2">
+                        Invoices
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
                         <TextField
                             select
-                            label="Status"
-                            value={selectedInvoice?.status || ''}
-                            onChange={(e) => setSelectedInvoice({
-                                ...selectedInvoice,
-                                status: e.target.value
-                            })}
-                            disabled={dialogMode === 'view'}
+                            size="small"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            sx={{ minWidth: 150 }}
                         >
-                            <MenuItem value="Paid">Paid</MenuItem>
-                            <MenuItem value="Pending">Pending</MenuItem>
-                            <MenuItem value="Overdue">Overdue</MenuItem>
+                            <MenuItem value="ALL">All Invoices</MenuItem>
+                            <MenuItem value="PAID">Paid</MenuItem>
+                            <MenuItem value="PENDING">Pending</MenuItem>
+                            <MenuItem value="OVERDUE">Overdue</MenuItem>
                         </TextField>
-                        <TextField
-                            label="Due Date"
-                            type="date"
-                            value={selectedInvoice?.dueDate || ''}
-                            onChange={(e) => setSelectedInvoice({
-                                ...selectedInvoice,
-                                dueDate: e.target.value
-                            })}
-                            disabled={dialogMode === 'view'}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog}>
-                        {dialogMode === 'view' ? 'Close' : 'Cancel'}
-                    </Button>
-                    {dialogMode !== 'view' && (
-                        <Button onClick={handleSave} variant="contained" color="primary">
-                            {dialogMode === 'create' ? 'Create' : 'Save'}
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<AddIcon />}
+                            onClick={() => handleOpenDialog({
+                                clientName: '',
+                                amount: 0,
+                                tax: 0,
+                                total: 0,
+                                status: 'Pending',
+                                dueDate: '',
+                            }, 'create')}
+                        >
+                            New Invoice
                         </Button>
-                    )}
-                </DialogActions>
-            </Dialog>
-        </Box>
+                    </Box>
+                </Box>
+
+                <TableContainer component={Paper}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Invoice ID</TableCell>
+                                <TableCell>Client</TableCell>
+                                <TableCell align="right">Amount</TableCell>
+                                <TableCell align="right">Tax</TableCell>
+                                <TableCell align="right">Total</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell>Due Date</TableCell>
+                                <TableCell>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredInvoices.map((invoice) => (
+                                <TableRow key={invoice.id}>
+                                    <TableCell>{invoice.id}</TableCell>
+                                    <TableCell>{invoice.clientName}</TableCell>
+                                    <TableCell align="right">${invoice.amount}</TableCell>
+                                    <TableCell align="right">${invoice.tax}</TableCell>
+                                    <TableCell align="right">${invoice.total}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={invoice.status}
+                                            color={getStatusColor(invoice.status)}
+                                            size="small"
+                                        />
+                                    </TableCell>
+                                    <TableCell>{invoice.dueDate}</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            size="small"
+                                            startIcon={<VisibilityIcon />}
+                                            onClick={() => handleOpenDialog(invoice, 'view')}
+                                        >
+                                            View
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            startIcon={<EditIcon />}
+                                            onClick={() => handleOpenDialog(invoice, 'edit')}
+                                        >
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            color="error"
+                                            startIcon={<DeleteIcon />}
+                                            onClick={() => handleDelete(invoice.id)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+
+                <Dialog
+                    open={openDialog}
+                    onClose={handleCloseDialog}
+                    maxWidth="sm"
+                    fullWidth
+                >
+                    <DialogTitle>
+                        {dialogMode === 'view' ? 'Invoice Details' :
+                            dialogMode === 'edit' ? 'Edit Invoice' : 'Create Invoice'}
+                    </DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                label="Client Name"
+                                value={selectedInvoice?.clientName || ''}
+                                onChange={(e) => setSelectedInvoice({
+                                    ...selectedInvoice,
+                                    clientName: e.target.value
+                                })}
+                                disabled={dialogMode === 'view'}
+                            />
+                            <TextField
+                                label="Amount"
+                                type="number"
+                                value={selectedInvoice?.amount || ''}
+                                onChange={(e) => {
+                                    const amount = Number(e.target.value);
+                                    const tax = amount * 0.1;
+                                    setSelectedInvoice({
+                                        ...selectedInvoice,
+                                        amount,
+                                        tax,
+                                        total: amount + tax
+                                    });
+                                }}
+                                disabled={dialogMode === 'view'}
+                            />
+                            <TextField
+                                label="Tax"
+                                type="number"
+                                value={selectedInvoice?.tax || ''}
+                                disabled
+                            />
+                            <TextField
+                                label="Total"
+                                type="number"
+                                value={selectedInvoice?.total || ''}
+                                disabled
+                            />
+                            <TextField
+                                select
+                                label="Status"
+                                value={selectedInvoice?.status || ''}
+                                onChange={(e) => setSelectedInvoice({
+                                    ...selectedInvoice,
+                                    status: e.target.value
+                                })}
+                                disabled={dialogMode === 'view'}
+                            >
+                                <MenuItem value="Paid">Paid</MenuItem>
+                                <MenuItem value="Pending">Pending</MenuItem>
+                                <MenuItem value="Overdue">Overdue</MenuItem>
+                            </TextField>
+                            <TextField
+                                label="Due Date"
+                                type="date"
+                                value={selectedInvoice?.dueDate || ''}
+                                onChange={(e) => setSelectedInvoice({
+                                    ...selectedInvoice,
+                                    dueDate: e.target.value
+                                })}
+                                disabled={dialogMode === 'view'}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCloseDialog}>
+                            {dialogMode === 'view' ? 'Close' : 'Cancel'}
+                        </Button>
+                        {dialogMode !== 'view' && (
+                            <Button onClick={handleSave} variant="contained" color="primary">
+                                {dialogMode === 'create' ? 'Create' : 'Save'}
+                            </Button>
+                        )}
+                    </DialogActions>
+                </Dialog>
+            </Box>
+        </Layout>
     );
 };
 
