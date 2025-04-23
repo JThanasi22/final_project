@@ -15,6 +15,7 @@ public class JwtUtil {
     public static String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmail())              // stays the same
+                .claim("id", user.getId())
                 .claim("name", user.getName())            // custom claim
                 .claim("role", user.getRole())            // custom claim
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
@@ -37,5 +38,19 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+    public static String extractUserId(String token) {
+        return Jwts.parser()
+                .setSigningKey(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody()
+                .get("id", String.class);  // Getting the "id" claim from your token
+    }
+    public static String extractRole(String token) {
+        return Jwts.parser()
+                .setSigningKey(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role", String.class);
     }
 }

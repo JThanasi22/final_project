@@ -4,13 +4,13 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
+import main.model.Project;
 import main.model.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -141,4 +141,57 @@ public class FirestoreService {
         System.out.println("🗑️ Reset code deleted for: " + email);
     }
 
+
+    // ----------------- Project -----------------
+
+    private static final String PENDING_COLLECTION = "pending_projects";
+    private static final String[] PROJECT_COLLECTIONS = {
+            "pending_projects", "active_projects", "finished_projects"
+    };
+
+    // Create a project (default collection: pending_projects, default status: pending)
+    public void createProject(Project project, String userId) {
+        CollectionReference collectionRef = db.collection(PENDING_COLLECTION);
+        DocumentReference userRef = db.collection("users").document(userId);
+
+        // Set defaults
+        project.setStatus("pending");
+        project.setClientId(userRef); // Set the clientId as DocumentReference
+        project.setId(null);          // Firestore will assign the ID from docRef.getId()
+
+        // Set creationDate using Java time (formatted like endDate)
+        String formattedCreationDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        project.setCreationDate(formattedCreationDate);
+
+        // Add the project to Firestore and get the auto-generated ID
+        DocumentReference docRef = collectionRef.document();
+        project.setId(docRef.getId());  // Assign the generated ID to the project object
+
+        // Set the project data
+        ApiFuture<WriteResult> result = docRef.set(project);
+    }
+
+    // Fetch projects by user ID (search across all collections)
+    public List<Project> getProjectsByUserId(String userId) {
+        List<Project> allProjects = new ArrayList<>();
+        DocumentReference userRef = db.collection("users").document(userId);
+
+        for (String collection : PROJECT_COLLECTIONS) {
+            try {
+                ApiFuture<QuerySnapshot> future = db.collection(collection)
+                        .whereEqualTo("clientId", userRef)
+                        .get();
+
+                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                for (DocumentSnapshot doc : documents) {
+                    Project project = doc.toObject(Project.class);
+                    project.setId(doc.getId());  // Attach the document ID
+                    allProjects.add(project);
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+        return allProjects;
+    }
 }
