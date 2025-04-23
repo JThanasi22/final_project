@@ -13,14 +13,13 @@ import CaretIcon from './icons/caret.png';
 import CogIcon from './icons/cog.png';
 
 import './dash.css';
-import * as PropTypes from "prop-types";
-import PageBox from "./PageBox.jsx";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userEmail, setUserEmail] = useState('User');
   const [greeting, setGreeting] = useState('Welcome back');
+  const [userRole, setUserRole] = useState(null); // ✅ Add role state
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -47,6 +46,7 @@ const Dashboard = () => {
       try {
         const decoded = jwtDecode(token);
         setUserEmail(decoded.name || decoded.sub);
+        setUserRole(decoded.role); // ✅ Set the user role from token
         if (justSignedUp) {
           setGreeting('Welcome');
           localStorage.removeItem('justSignedUp');
@@ -68,7 +68,12 @@ const Dashboard = () => {
             <h2><span className="studio-text">Studio</span> <span className="studio-number">21</span></h2>
           </div>
           <div className="sidebar-menu">
-            <div className="nav-item active"><span className="nav-label">Dashboard</span></div>
+            <div
+                className={`nav-item ${isActiveRoute('/dashboard') ? 'active' : ''}`}
+                onClick={() => handleNavigation('/dashboard')}
+            >
+              <span className="nav-label">Dashboard</span>
+            </div>
             <div
                 className={`nav-item ${isActiveRoute('/projects') ? 'active' : ''}`}
                 onClick={() => handleNavigation('/projects')}
@@ -76,19 +81,20 @@ const Dashboard = () => {
               <span className="nav-label">Projects</span>
             </div>
             <div className="nav-item"><span className="nav-label">Billing</span></div>
-
             <div
                 className={`nav-item ${isActiveRoute('/portfolio') ? 'active' : ''}`}
                 onClick={() => handleNavigation('/portfolio')}
             >
               <span className="nav-label">Portfolio</span>
             </div>
-            <div
-                className={`nav-item ${isActiveRoute('/tasks') ? 'active' : ''}`}
-                onClick={() => handleNavigation('/tasks')}
-            >
-              <span className="nav-label">Tasks</span>
-            </div>
+            {userRole !== 'c' && ( // ✅ Only show "Tasks" if not client
+                <div
+                    className={`nav-item ${isActiveRoute('/tasks') ? 'active' : ''}`}
+                    onClick={() => handleNavigation('/tasks')}
+                >
+                  <span className="nav-label">Tasks</span>
+                </div>
+            )}
           </div>
         </div>
 
