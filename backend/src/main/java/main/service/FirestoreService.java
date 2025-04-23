@@ -8,7 +8,9 @@ import main.model.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -117,7 +119,6 @@ public class FirestoreService {
             System.out.println("✅ Updated password for: " + email);
             System.out.println("🔐 Raw new password: " + newPassword);
         }
-
     }
 
     // ----------------- Password Reset Tokens -----------------
@@ -141,4 +142,70 @@ public class FirestoreService {
         System.out.println("🗑️ Reset code deleted for: " + email);
     }
 
+    // ----------------- Admin Operations -----------------
+
+    public List<User> getAllUsers() throws ExecutionException, InterruptedException {
+        List<User> users = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(USER_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            User user = doc.toObject(User.class);
+            if (user != null) {
+                // Don't send password hash to frontend
+                user.setPassword(null);
+                users.add(user);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + users.size() + " users");
+        return users;
+    }
+
+    public boolean updateUserRole(String userId, String newRole) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(USER_COLLECTION).document(userId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.update("role", newRole).get();
+            System.out.println("✅ Updated role for user " + userId + " to " + newRole);
+            return true;
+        } else {
+            System.out.println("❌ User not found: " + userId);
+            return false;
+        }
+    }
+
+    public boolean deleteUser(String userId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(USER_COLLECTION).document(userId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted user: " + userId);
+            return true;
+        } else {
+            System.out.println("❌ User not found: " + userId);
+            return false;
+        }
+    }
+
+    public Map<String, Object> getSystemStats() throws ExecutionException, InterruptedException {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Count total users
+        QuerySnapshot userSnapshot = db.collection(USER_COLLECTION).get().get();
+        long totalUsers = userSnapshot.size();
+        
+        // Count admin users
+        QuerySnapshot adminSnapshot = db.collection(USER_COLLECTION)
+                .whereEqualTo("role", "a")
+                .get().get();
+        long adminUsers = adminSnapshot.size();
+        
+        stats.put("totalUsers", totalUsers);
+        stats.put("adminUsers", adminUsers);
+        stats.put("regularUsers", totalUsers - adminUsers);
+        
+        return stats;
+    }
 }
