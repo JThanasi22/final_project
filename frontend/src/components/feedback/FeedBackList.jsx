@@ -14,11 +14,16 @@ import {
     DialogActions,
     TextField,
     MenuItem,
+    Container,
+    Card,
+    CardContent,
+    Divider
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ReplyIcon from '@mui/icons-material/Reply';
 import PersonIcon from '@mui/icons-material/Person';
 import EventIcon from '@mui/icons-material/Event';
+import Layout from '../Layout';
 
 const mockFeedback = [
     {
@@ -99,186 +104,253 @@ const FeedbackList = () => {
     });
 
     return (
-        <Box sx={{
-            p: 3,
-            minHeight: '100vh',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
-            <Paper elevation={0} sx={{
-                width: '100%',
-                borderRadius: '12px',
-                p: 3,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                mb: 3,
-                borderLeft: '4px solid #4a6fdc'
-            }}>
-                <Box sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 2
-                }}>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                        Client Feedback
-                    </Typography>
+        <Layout>
+            <Container maxWidth="xl" sx={{ py: 4, px: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: 500, color: '#333' }}>
+                            Client Feedback
+                        </Typography>
+                        <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 1 }}>
+                            Review and manage client feedback for your projects
+                        </Typography>
+                    </Box>
                     <Button
                         variant="contained"
                         color="primary"
+                        size="large"
                         startIcon={<ReplyIcon />}
+                        sx={{ 
+                            borderRadius: '8px', 
+                            px: 3, 
+                            py: 1.2,
+                            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)',
+                            textTransform: 'none',
+                            fontSize: '0.95rem'
+                        }}
                     >
                         Respond to Feedback
                     </Button>
                 </Box>
-                <Typography variant="subtitle1" color="text.secondary">
-                    Review and manage client feedback for your projects
-                </Typography>
-            </Paper>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <TextField
-                    select
-                    size="small"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    sx={{ minWidth: 150 }}
-                >
-                    <MenuItem value="ALL">All Feedback</MenuItem>
-                    <MenuItem value="UNREAD">Unread</MenuItem>
-                    <MenuItem value="REPLIED">Replied</MenuItem>
-                </TextField>
-            </Box>
+                <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 4 
+                }}>
+                    <TextField
+                        select
+                        size="small"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        sx={{ 
+                            minWidth: 180,
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '8px',
+                            }
+                        }}
+                    >
+                        <MenuItem value="ALL">All Feedback</MenuItem>
+                        <MenuItem value="UNREAD">Unread</MenuItem>
+                        <MenuItem value="REPLIED">Replied</MenuItem>
+                    </TextField>
+                </Box>
 
-            <Grid container spacing={3} sx={{ width: '100%', m: 0 }}>
                 {filteredFeedback.map((item) => (
-                    <Grid item xs={12} key={item.id}>
-                        <Paper elevation={0} sx={{
-                            p: 3,
-                            borderRadius: '12px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            width: '100%'
-                        }}>
+                    <Card 
+                        key={item.id} 
+                        sx={{
+                            mb: 3,
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                            border: '1px solid #eaecef',
+                            overflow: 'visible',
+                            position: 'relative',
+                            '&:hover': {
+                                boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+                            },
+                        }}
+                    >
+                        <Box sx={{ 
+                            position: 'absolute', 
+                            top: 0, 
+                            left: 0, 
+                            bottom: 0, 
+                            width: '6px', 
+                            borderTopLeftRadius: '16px',
+                            borderBottomLeftRadius: '16px',
+                            bgcolor: item.status === 'Unread' ? '#f44336' : '#4caf50' 
+                        }} />
+
+                        <CardContent sx={{ p: 3, pl: 4 }}>
                             <Box sx={{
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'flex-start',
                                 mb: 2
                             }}>
-                                <Box>
-                                    <Typography variant="h6" sx={{ mb: 1 }}>
-                                        {item.projectTitle}
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                                        <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            color: 'text.secondary'
-                                        }}>
-                                            <PersonIcon fontSize="small" />
-                                            <Typography variant="body2">
-                                                {item.clientName}
-                                            </Typography>
-                                        </Box>
-                                        <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            color: 'text.secondary'
-                                        }}>
-                                            <EventIcon fontSize="small" />
-                                            <Typography variant="body2">
-                                                {new Date(item.date).toLocaleDateString()}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Box>
-                                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 500, color: '#333' }}>
+                                    {item.projectTitle}
+                                </Typography>
+                                
+                                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                                     <Chip
                                         label={item.status}
                                         color={item.status === 'Unread' ? 'error' : 'success'}
                                         size="small"
+                                        sx={{ 
+                                            borderRadius: '16px', 
+                                            fontWeight: 500,
+                                            px: 1
+                                        }}
                                     />
                                     <IconButton
                                         size="small"
                                         color="error"
                                         onClick={() => handleDelete(item.id)}
                                         title="Delete feedback"
+                                        sx={{ 
+                                            bgcolor: 'rgba(244,67,54,0.08)',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(244,67,54,0.12)',
+                                            } 
+                                        }}
                                     >
-                                        <DeleteIcon />
+                                        <DeleteIcon fontSize="small" />
                                     </IconButton>
                                 </Box>
                             </Box>
-
-                            <Box sx={{ mb: 2 }}>
+                            
+                            <Box sx={{ display: 'flex', gap: 3, mb: 3, alignItems: 'center' }}>
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    color: 'text.secondary'
+                                }}>
+                                    <PersonIcon fontSize="small" />
+                                    <Typography variant="body2">
+                                        {item.clientName}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    color: 'text.secondary'
+                                }}>
+                                    <EventIcon fontSize="small" />
+                                    <Typography variant="body2">
+                                        {new Date(item.date).toLocaleDateString()}
+                                    </Typography>
+                                </Box>
                                 <Rating
                                     value={item.rating}
                                     readOnly
                                     precision={0.5}
+                                    size="small"
                                 />
                             </Box>
 
-                            <Typography variant="body1" sx={{
-                                bgcolor: '#f8f9fa',
-                                p: 2,
-                                borderRadius: '8px',
-                                fontStyle: 'italic'
+                            <Box sx={{ 
+                                bgcolor: '#f9fafc', 
+                                p: 3, 
+                                borderRadius: '12px',
+                                mb: item.reply ? 3 : 0,
+                                fontStyle: 'italic' 
                             }}>
-                                "{item.comment}"
-                            </Typography>
+                                <Typography variant="body1" sx={{ lineHeight: 1.7, color: '#333' }}>
+                                    "{item.comment}"
+                                </Typography>
+                            </Box>
 
                             {item.reply && (
-                                <Box sx={{ mt: 2, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Reply: {item.reply}
+                                <Box sx={{ 
+                                    p: 2, 
+                                    ml: 3, 
+                                    bgcolor: 'rgba(33, 150, 243, 0.05)',
+                                    borderRadius: '12px',
+                                    borderLeft: '3px solid #2196f3',
+                                }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                        Your reply:
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ mt: 1 }}>
+                                        {item.reply}
                                     </Typography>
                                 </Box>
                             )}
 
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                                <Box>
-                                    <IconButton
-                                        size="small"
-                                        color="primary"
-                                        onClick={() => handleOpenReplyDialog(item)}
-                                        disabled={item.status === 'Replied'}
-                                        title={item.status === 'Replied' ? 'Already replied' : 'Reply to feedback'}
-                                    >
-                                        <ReplyIcon />
-                                    </IconButton>
-                                </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    size="small"
+                                    startIcon={<ReplyIcon />}
+                                    onClick={() => handleOpenReplyDialog(item)}
+                                    disabled={item.status === 'Replied'}
+                                    sx={{ 
+                                        borderRadius: '8px',
+                                        textTransform: 'none'
+                                    }}
+                                >
+                                    {item.status === 'Replied' ? 'Already Replied' : 'Reply'}
+                                </Button>
                             </Box>
-                        </Paper>
-                    </Grid>
+                        </CardContent>
+                    </Card>
                 ))}
-            </Grid>
 
-            {filteredFeedback.length === 0 && (
-                <Box sx={{ textAlign: 'center', mt: 4 }}>
-                    <Typography variant="body1" color="text.secondary">
-                        No feedback available for the selected filter
-                    </Typography>
-                </Box>
-            )}
+                {filteredFeedback.length === 0 && (
+                    <Box sx={{ 
+                        textAlign: 'center', 
+                        mt: 4, 
+                        p: 4, 
+                        bgcolor: '#f9fafc', 
+                        borderRadius: '16px' 
+                    }}>
+                        <Typography variant="body1" color="text.secondary">
+                            No feedback available for the selected filter
+                        </Typography>
+                    </Box>
+                )}
+            </Container>
 
             <Dialog
                 open={openDialog}
                 onClose={handleCloseDialog}
                 maxWidth="sm"
                 fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: '12px',
+                        overflow: 'hidden'
+                    }
+                }}
             >
-                <DialogTitle>
-                    Reply to Feedback
+                <DialogTitle sx={{ 
+                    backgroundColor: '#f9fafc', 
+                    borderBottom: '1px solid #eaecef',
+                    p: 2.5
+                }}>
+                    <Typography variant="h6">Reply to Feedback</Typography>
                 </DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
+                <DialogContent sx={{ p: 3, pt: 3 }}>
+                    <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                             Original Feedback:
                         </Typography>
-                        <Typography color="text.secondary" paragraph>
-                            {selectedFeedback?.comment}
-                        </Typography>
+                        <Box sx={{ 
+                            p: 2, 
+                            bgcolor: '#f9fafc', 
+                            borderRadius: '8px',
+                            mb: 3,
+                            fontStyle: 'italic' 
+                        }}>
+                            <Typography color="text.secondary">
+                                {selectedFeedback?.comment}
+                            </Typography>
+                        </Box>
                         <TextField
                             fullWidth
                             multiline
@@ -286,22 +358,41 @@ const FeedbackList = () => {
                             label="Your Reply"
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '8px',
+                                }
+                            }}
                         />
                     </Box>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
+                <DialogActions sx={{ p: 2, px: 3, borderTop: '1px solid #eaecef' }}>
+                    <Button 
+                        onClick={handleCloseDialog}
+                        sx={{ 
+                            textTransform: 'none',
+                            fontWeight: 500
+                        }}
+                    >
+                        Cancel
+                    </Button>
                     <Button
                         onClick={handleSendReply}
                         variant="contained"
                         color="primary"
                         disabled={!replyText.trim()}
+                        sx={{ 
+                            textTransform: 'none',
+                            borderRadius: '8px',
+                            px: 3,
+                            fontWeight: 500
+                        }}
                     >
                         Send Reply
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+        </Layout>
     );
 };
 

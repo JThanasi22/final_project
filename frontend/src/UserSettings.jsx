@@ -11,7 +11,8 @@ import {
     MDBRow,
     MDBSpinner
 } from "mdb-react-ui-kit";
-import LoginBanner from "./assets/LoginBanner.png";
+import Layout from './components/Layout';
+import './dash.css';
 
 const UserSettings = () => {
     const [userData, setUserData] = useState(null);
@@ -85,23 +86,16 @@ const UserSettings = () => {
         }
     };
 
-    if (!userData) return <div style={{ padding: '25px' }}>Loading user data...</div>;
+    if (!userData) return <Layout><div style={{ padding: '25px' }}>Loading user data...</div></Layout>;
 
     return (
-        <>
-            <MDBContainer fluid>
+        <Layout>
+            <MDBContainer fluid className="settings-container">
                 <MDBRow>
-                    <MDBCol sm="6" className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+                    <MDBCol sm="12" className="d-flex align-items-center justify-content-center">
                         <div className="w-75">
                             <div className="text-center mb-4">
-                                <h2 className="fw-bold mb-3" style={{ fontSize: '2.7rem', color: '#161819' }}>
-                                    Your Studio, Your Vision
-                                </h2>
-                                <p className="lead" style={{ color: '#161819', fontSize: '1.1rem' }}>
-                                    Simplify Studio Management, Workflow and Clients.
-                                </p>
-
-                                <h3 className="fw-bold mb-3 pb-3 custom-heading" style={{ letterSpacing: '5px' }}>User Settings</h3>
+                                <h3 className="fw-bold mb-3 pb-3 custom-heading">User Settings</h3>
 
                                 <form onSubmit={handleSubmit} className="w-100">
                                     <MDBInput
@@ -152,14 +146,6 @@ const UserSettings = () => {
                             </div>
                         </div>
                     </MDBCol>
-                    <MDBCol sm="6" className="d-none d-sm-block px-0">
-                        <img
-                            src={LoginBanner}
-                            alt="Login visual"
-                            className="w-100"
-                            style={{ objectFit: 'cover', objectPosition: 'center' }}
-                        />
-                    </MDBCol>
                 </MDBRow>
             </MDBContainer>
 
@@ -172,7 +158,7 @@ const UserSettings = () => {
                     </MDBModalContent>
                 </MDBModalDialog>
             </MDBModal>
-        </>
+        </Layout>
     );
 };
 

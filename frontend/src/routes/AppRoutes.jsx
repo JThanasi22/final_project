@@ -9,6 +9,7 @@ import MessageCenter from '../components/messages/MessageCenter';
 import FeedbackList from '../components/feedback/FeedbackList';
 import NotificationList from '../components/notifications/NotificationList';
 import UserSettings from '../UserSettings';
+import AdminPanel from '../components/admin/AdminPanel';
 
 const AppRoutes = () => {
     return (
@@ -23,6 +24,7 @@ const AppRoutes = () => {
                 <Route path="/feedback" element={<FeedbackList />} />
                 <Route path="/notifications" element={<NotificationList />} />
                 <Route path="/settings" element={<UserSettings />} />
+                <Route path="/admin" element={<AdminPanel />} />
         </Routes>
     );
 };
