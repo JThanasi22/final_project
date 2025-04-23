@@ -32,10 +32,16 @@ public class JwtUtil {
     }
 
     public static String extractEmail(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
+        } catch (Exception e) {
+            System.err.println("❌ Error extracting email from token: " + e.getMessage());
+            return null;
+        }
     }
 }

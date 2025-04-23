@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
+import main.model.Project;
 import main.model.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class FirestoreService {
 
     private static final String USER_COLLECTION = "users";
     private static final String TOKEN_COLLECTION = "reset_tokens";
+    private static final String PROJECT_COLLECTION = "projects";
 
     private final Firestore db;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -207,5 +209,90 @@ public class FirestoreService {
         stats.put("regularUsers", totalUsers - adminUsers);
         
         return stats;
+    }
+    
+    // ----------------- Project Operations -----------------
+    
+    public List<Project> getAllProjects() throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(PROJECT_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + projects.size() + " projects");
+        return projects;
+    }
+    
+    public List<Project> getProjectsByUser(String userId) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(PROJECT_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + projects.size() + " projects for user " + userId);
+        return projects;
+    }
+    
+    public Project getProjectById(String projectId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot doc = db.collection(PROJECT_COLLECTION).document(projectId).get().get();
+        if (doc.exists()) {
+            return doc.toObject(Project.class);
+        }
+        return null;
+    }
+    
+    public String createProject(Project project) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document();
+        project.setId(docRef.getId());
+        
+        docRef.set(project).get();
+        System.out.println("✅ Created project with ID: " + project.getId());
+        
+        return project.getId();
+    }
+    
+    public boolean updateProject(Project project) throws ExecutionException, InterruptedException {
+        if (project.getId() == null) {
+            System.out.println("❌ Cannot update project with null ID");
+            return false;
+        }
+        
+        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document(project.getId());
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.set(project).get();
+            System.out.println("✅ Updated project: " + project.getId());
+            return true;
+        } else {
+            System.out.println("❌ Project not found: " + project.getId());
+            return false;
+        }
+    }
+    
+    public boolean deleteProject(String projectId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document(projectId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted project: " + projectId);
+            return true;
+        } else {
+            System.out.println("❌ Project not found: " + projectId);
+            return false;
+        }
     }
 }

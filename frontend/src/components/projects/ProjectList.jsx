@@ -17,60 +17,54 @@ import {
     DialogActions,
     TextField,
     MenuItem,
+    CircularProgress,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import Layout from '../Layout';
+import axios from 'axios';
 
-const mockProjects = [
-    {
-        id: 1,
-        location: 'New York City',
-        cost: '$2,500',
-        type: 'Wedding',
-        status: 'In Progress',
-        startDate: '2024-03-15',
-        endDate: '2024-03-16',
-        description: 'Wedding photography for John & Sarah Smith',
-        client: 'John Smith',
-        email: 'john.smith@email.com',
-        phone: '(555) 123-4567'
-    },
-    {
-        id: 2,
-        location: 'Los Angeles',
-        cost: '$1,800',
-        type: 'Corporate Event',
-        status: 'Pending',
-        startDate: '2024-03-20',
-        endDate: '2024-03-20',
-        description: 'Annual corporate meeting photography',
-        client: 'Tech Solutions Inc.',
-        email: 'events@techsolutions.com',
-        phone: '(555) 987-6543'
-    },
-    {
-        id: 3,
-        location: 'Chicago',
-        cost: '$3,000',
-        type: 'Product Photography',
-        status: 'Completed',
-        startDate: '2024-03-01',
-        endDate: '2024-03-02',
-        description: 'Product catalog photoshoot',
-        client: 'Fashion Brand Co.',
-        email: 'marketing@fashionbrand.com',
-        phone: '(555) 456-7890'
-    },
-];
+const API_URL = 'http://localhost:8080';
 
 const ProjectList = () => {
     const [projects, setProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
     const [dialogMode, setDialogMode] = useState(null); // 'view', 'edit', 'delete'
     const [editedProject, setEditedProject] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: '',
+        severity: 'success'
+    });
+
+    // Helper function to get auth header
+    const getAuthHeader = () => {
+        const token = localStorage.getItem('token');
+        return {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        };
+    };
+
+    // Fetch projects from API
+    const fetchProjects = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`${API_URL}/api/projects`, getAuthHeader());
+            setProjects(response.data);
+            showSnackbar('Projects loaded successfully', 'success');
+        } catch (error) {
+            console.error('Error fetching projects:', error);
+            showSnackbar('Failed to load projects: ' + (error.response?.data || error.message), 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        // Simulating API call with mock data
-        setProjects(mockProjects);
+        fetchProjects();
     }, []);
 
     const handleOpenDialog = (project, mode) => {
@@ -87,22 +81,76 @@ const ProjectList = () => {
         setEditedProject(null);
     };
 
-    const handleSave = () => {
-        if (!editedProject) return;
-
-        const updatedProjects = projects.map(project =>
-            project.id === editedProject.id ? editedProject : project
-        );
-        setProjects(updatedProjects);
-        handleCloseDialog();
+    const showSnackbar = (message, severity = 'success') => {
+        setSnackbar({
+            open: true,
+            message,
+            severity
+        });
     };
 
-    const handleDelete = () => {
+    const handleCloseSnackbar = () => {
+        setSnackbar({
+            ...snackbar,
+            open: false
+        });
+    };
+
+    const handleSave = async () => {
+        if (!editedProject) return;
+
+        try {
+            setLoading(true);
+            
+            if (editedProject.id) {
+                // Update existing project
+                await axios.put(
+                    `${API_URL}/api/projects/${editedProject.id}`, 
+                    editedProject,
+                    getAuthHeader()
+                );
+                showSnackbar('Project updated successfully', 'success');
+            } else {
+                // Create new project
+                await axios.post(
+                    `${API_URL}/api/projects`, 
+                    editedProject,
+                    getAuthHeader()
+                );
+                showSnackbar('Project created successfully', 'success');
+            }
+            
+            // Refresh projects list
+            fetchProjects();
+            handleCloseDialog();
+        } catch (error) {
+            console.error('Error saving project:', error);
+            showSnackbar('Failed to save project: ' + (error.response?.data || error.message), 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
         if (!selectedProject) return;
 
-        const updatedProjects = projects.filter(project => project.id !== selectedProject.id);
-        setProjects(updatedProjects);
-        handleCloseDialog();
+        try {
+            setLoading(true);
+            await axios.delete(
+                `${API_URL}/api/projects/${selectedProject.id}`,
+                getAuthHeader()
+            );
+            showSnackbar('Project deleted successfully', 'success');
+            
+            // Refresh projects list
+            fetchProjects();
+            handleCloseDialog();
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            showSnackbar('Failed to delete project: ' + (error.response?.data || error.message), 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleInputChange = (e) => {
@@ -114,6 +162,8 @@ const ProjectList = () => {
     };
 
     const getStatusColor = (status) => {
+        if (!status) return 'default';
+        
         switch (status.toLowerCase()) {
             case 'completed':
                 return 'success';
@@ -137,7 +187,6 @@ const ProjectList = () => {
                         variant="contained"
                         color="primary"
                         onClick={() => handleOpenDialog({
-                            id: projects.length + 1,
                             location: '',
                             cost: '',
                             type: '',
@@ -154,66 +203,77 @@ const ProjectList = () => {
                     </Button>
                 </Box>
 
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Project ID</TableCell>
-                                <TableCell>Location</TableCell>
-                                <TableCell>Cost</TableCell>
-                                <TableCell>Type</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Start Date</TableCell>
-                                <TableCell>End Date</TableCell>
-                                <TableCell>Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {projects.map((project) => (
-                                <TableRow key={project.id}>
-                                    <TableCell>{project.id}</TableCell>
-                                    <TableCell>{project.location}</TableCell>
-                                    <TableCell>{project.cost}</TableCell>
-                                    <TableCell>{project.type}</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={project.status}
-                                            color={getStatusColor(project.status)}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>{project.startDate}</TableCell>
-                                    <TableCell>{project.endDate}</TableCell>
-                                    <TableCell>
-                                        <Button
-                                            size="small"
-                                            color="primary"
-                                            sx={{ mr: 1 }}
-                                            onClick={() => handleOpenDialog(project, 'view')}
-                                        >
-                                            View
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            color="secondary"
-                                            sx={{ mr: 1 }}
-                                            onClick={() => handleOpenDialog(project, 'edit')}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            color="error"
-                                            onClick={() => handleOpenDialog(project, 'delete')}
-                                        >
-                                            Delete
-                                        </Button>
-                                    </TableCell>
+                {loading && projects.length === 0 ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <TableContainer component={Paper}>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Location</TableCell>
+                                    <TableCell>Cost</TableCell>
+                                    <TableCell>Type</TableCell>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell>Start Date</TableCell>
+                                    <TableCell>End Date</TableCell>
+                                    <TableCell>Actions</TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {projects.map((project) => (
+                                    <TableRow key={project.id}>
+                                        <TableCell>{project.location}</TableCell>
+                                        <TableCell>{project.cost}</TableCell>
+                                        <TableCell>{project.type}</TableCell>
+                                        <TableCell>
+                                            <Chip
+                                                label={project.status}
+                                                color={getStatusColor(project.status)}
+                                                size="small"
+                                            />
+                                        </TableCell>
+                                        <TableCell>{project.startDate}</TableCell>
+                                        <TableCell>{project.endDate}</TableCell>
+                                        <TableCell>
+                                            <Button
+                                                size="small"
+                                                color="primary"
+                                                sx={{ mr: 1 }}
+                                                onClick={() => handleOpenDialog(project, 'view')}
+                                            >
+                                                View
+                                            </Button>
+                                            <Button
+                                                size="small"
+                                                color="secondary"
+                                                sx={{ mr: 1 }}
+                                                onClick={() => handleOpenDialog(project, 'edit')}
+                                            >
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                size="small"
+                                                color="error"
+                                                onClick={() => handleOpenDialog(project, 'delete')}
+                                            >
+                                                Delete
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {projects.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} align="center">
+                                            No projects found
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
 
                 {/* View/Edit Dialog */}
                 <Dialog
@@ -268,19 +328,13 @@ const ProjectList = () => {
                                 disabled={dialogMode === 'view'}
                             />
                             <TextField
-                                select
                                 label="Type"
                                 name="type"
                                 value={dialogMode === 'edit' ? editedProject?.type : selectedProject?.type}
                                 onChange={handleInputChange}
                                 fullWidth
                                 disabled={dialogMode === 'view'}
-                            >
-                                <MenuItem value="Wedding">Wedding</MenuItem>
-                                <MenuItem value="Corporate Event">Corporate Event</MenuItem>
-                                <MenuItem value="Product Photography">Product Photography</MenuItem>
-                                <MenuItem value="Portrait">Portrait</MenuItem>
-                            </TextField>
+                            />
                             <TextField
                                 select
                                 label="Status"
@@ -298,30 +352,30 @@ const ProjectList = () => {
                                 label="Start Date"
                                 name="startDate"
                                 type="date"
+                                InputLabelProps={{ shrink: true }}
                                 value={dialogMode === 'edit' ? editedProject?.startDate : selectedProject?.startDate}
                                 onChange={handleInputChange}
                                 fullWidth
                                 disabled={dialogMode === 'view'}
-                                InputLabelProps={{ shrink: true }}
                             />
                             <TextField
                                 label="End Date"
                                 name="endDate"
                                 type="date"
+                                InputLabelProps={{ shrink: true }}
                                 value={dialogMode === 'edit' ? editedProject?.endDate : selectedProject?.endDate}
                                 onChange={handleInputChange}
                                 fullWidth
                                 disabled={dialogMode === 'view'}
-                                InputLabelProps={{ shrink: true }}
                             />
                             <TextField
                                 label="Description"
                                 name="description"
+                                multiline
+                                rows={4}
                                 value={dialogMode === 'edit' ? editedProject?.description : selectedProject?.description}
                                 onChange={handleInputChange}
                                 fullWidth
-                                multiline
-                                rows={4}
                                 disabled={dialogMode === 'view'}
                             />
                         </Box>
@@ -331,8 +385,13 @@ const ProjectList = () => {
                             {dialogMode === 'view' ? 'Close' : 'Cancel'}
                         </Button>
                         {dialogMode === 'edit' && (
-                            <Button onClick={handleSave} variant="contained" color="primary">
-                                Save
+                            <Button 
+                                onClick={handleSave} 
+                                variant="contained" 
+                                color="primary"
+                                disabled={loading}
+                            >
+                                {loading ? <CircularProgress size={24} /> : 'Save'}
                             </Button>
                         )}
                     </DialogActions>
@@ -351,11 +410,32 @@ const ProjectList = () => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleCloseDialog}>Cancel</Button>
-                        <Button onClick={handleDelete} color="error" variant="contained">
-                            Delete
+                        <Button 
+                            onClick={handleDelete} 
+                            color="error" 
+                            variant="contained"
+                            disabled={loading}
+                        >
+                            {loading ? <CircularProgress size={24} /> : 'Delete'}
                         </Button>
                     </DialogActions>
                 </Dialog>
+
+                {/* Snackbar for notifications */}
+                <Snackbar 
+                    open={snackbar.open} 
+                    autoHideDuration={6000} 
+                    onClose={handleCloseSnackbar}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert 
+                        onClose={handleCloseSnackbar} 
+                        severity={snackbar.severity} 
+                        variant="filled"
+                    >
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
             </Box>
         </Layout>
     );
