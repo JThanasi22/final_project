@@ -8,6 +8,7 @@ import main.model.Project;
 import main.model.Task;
 import main.model.User;
 import main.model.Invoice;
+import main.model.Portfolio;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,7 @@ public class FirestoreService {
     private static final String PROJECT_COLLECTION = "projects";
     private static final String TASK_COLLECTION = "tasks";
     private static final String INVOICE_COLLECTION = "invoices";
+    private static final String PORTFOLIO_COLLECTION = "portfolios";
 
     private final Firestore db;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -551,6 +553,111 @@ public class FirestoreService {
         }
         
         System.out.println("❌ Invoice not found for deletion: " + invoiceId);
+        return false;
+    }
+
+    // Portfolio related methods
+    public List<Portfolio> getAllPortfolios() throws ExecutionException, InterruptedException {
+        List<Portfolio> portfolios = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(PORTFOLIO_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Portfolio portfolio = doc.toObject(Portfolio.class);
+            if (portfolio != null) {
+                portfolios.add(portfolio);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + portfolios.size() + " portfolios");
+        return portfolios;
+    }
+
+    public List<Portfolio> getPortfoliosByUser(String userId) throws ExecutionException, InterruptedException {
+        List<Portfolio> portfolios = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(PORTFOLIO_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Portfolio portfolio = doc.toObject(Portfolio.class);
+            if (portfolio != null) {
+                portfolios.add(portfolio);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + portfolios.size() + " portfolios for user: " + userId);
+        return portfolios;
+    }
+
+    public Portfolio getPortfolioById(String portfolioId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot doc = db.collection(PORTFOLIO_COLLECTION).document(portfolioId).get().get();
+        if (doc.exists()) {
+            Portfolio portfolio = doc.toObject(Portfolio.class);
+            System.out.println("✅ Retrieved portfolio: " + portfolioId);
+            return portfolio;
+        }
+        System.out.println("❌ Portfolio not found: " + portfolioId);
+        return null;
+    }
+
+    public String createPortfolio(Portfolio portfolio) throws ExecutionException, InterruptedException {
+        try {
+            // Validate the portfolio object
+            if (portfolio == null) {
+                throw new IllegalArgumentException("Portfolio object cannot be null");
+            }
+            
+            // If no ID is provided, generate one
+            if (portfolio.getId() == null || portfolio.getId().isEmpty()) {
+                String portfolioId = UUID.randomUUID().toString();
+                portfolio.setId(portfolioId);
+            }
+            
+            // Create document reference with the portfolio ID
+            DocumentReference docRef = db.collection(PORTFOLIO_COLLECTION).document(portfolio.getId());
+            
+            // Save the portfolio
+            ApiFuture<WriteResult> result = docRef.set(portfolio);
+            result.get(); // Wait for completion
+            
+            System.out.println("✅ Created portfolio with ID: " + portfolio.getId());
+            return portfolio.getId();
+        } catch (Exception e) {
+            System.err.println("❌ Error creating portfolio: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public boolean updatePortfolio(Portfolio portfolio) throws ExecutionException, InterruptedException {
+        if (portfolio == null || portfolio.getId() == null || portfolio.getId().isEmpty()) {
+            return false;
+        }
+        
+        DocumentReference docRef = db.collection(PORTFOLIO_COLLECTION).document(portfolio.getId());
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.set(portfolio).get();
+            System.out.println("✅ Updated portfolio: " + portfolio.getId());
+            return true;
+        }
+        
+        System.out.println("❌ Portfolio not found for update: " + portfolio.getId());
+        return false;
+    }
+
+    public boolean deletePortfolio(String portfolioId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(PORTFOLIO_COLLECTION).document(portfolioId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted portfolio: " + portfolioId);
+            return true;
+        }
+        
+        System.out.println("❌ Portfolio not found for deletion: " + portfolioId);
         return false;
     }
 }

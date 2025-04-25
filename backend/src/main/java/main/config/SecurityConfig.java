@@ -26,7 +26,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        // Order matters - most specific first
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Permit all HTTP methods for portfolios
+                        .requestMatchers(HttpMethod.GET, "/api/portfolios/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/portfolios/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/portfolios/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/portfolios/**").permitAll()
+                        // Permit file uploads and downloads
+                        .requestMatchers("/api/files/**").permitAll()
+                        // Other permitted paths
                         .requestMatchers("/api/invoices/**").permitAll()
                         .requestMatchers("/api/users/signup").permitAll()
                         .requestMatchers("/api/users/login").permitAll()
@@ -39,24 +48,24 @@ public class SecurityConfig {
 
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); // ✅ THIS IS CRUCIAL
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173")); // ✅ your frontend
+        config.setAllowedOrigins(List.of("*")); // Allow all origins
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // only if needed
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

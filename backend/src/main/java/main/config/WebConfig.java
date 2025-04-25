@@ -10,10 +10,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")  // Allow all origins
-                .allowedMethods("*")  // Allow all methods
-                .allowedHeaders("*")  // Allow all headers
-                .maxAge(3600);        // Cache preflight for 1 hour
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .exposedHeaders("Authorization")
+                .maxAge(3600);
         
         System.out.println("✅ CORS configuration applied with all origins allowed");
     }
