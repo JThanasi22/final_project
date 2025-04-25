@@ -13,11 +13,12 @@ public class Project {
     private String status;
     private String type;
     private DocumentReference clientId;
+    private String userId;
 
     public Project() {
     }
 
-    public Project(String id, String title, String description, String requirements, String creationDate, String endDate, Float price, String status, String type, DocumentReference clientId) {
+    public Project(String id, String title, String description, String requirements, String creationDate, String endDate, Float price, String status, String type, DocumentReference clientId, String userId) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -28,6 +29,7 @@ public class Project {
         this.status = status;
         this.type = type;
         this.clientId = clientId;
+        this.userId = userId;
     }
 
     public String getId() {
@@ -108,5 +110,13 @@ public class Project {
 
     public void setClientId(DocumentReference clientId) {
         this.clientId = clientId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

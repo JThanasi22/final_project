@@ -254,6 +254,11 @@ public class FirestoreService {
         return projects;
     }
     
+    public List<Project> getProjectsByUserId(String userId) throws ExecutionException, InterruptedException {
+        // This is just a wrapper method that calls the existing getProjectsByUser method
+        return getProjectsByUser(userId);
+    }
+    
     public Project getProjectById(String projectId) throws ExecutionException, InterruptedException {
         DocumentSnapshot doc = db.collection(PROJECT_COLLECTION).document(projectId).get().get();
         if (doc.exists()) {
@@ -262,9 +267,12 @@ public class FirestoreService {
         return null;
     }
     
-    public String createProject(Project project) throws ExecutionException, InterruptedException {
+    public String createProject(Project project, String userId) throws ExecutionException, InterruptedException {
         DocumentReference docRef = db.collection(PROJECT_COLLECTION).document();
         project.setId(docRef.getId());
+        
+        // Add userId to the project before saving
+        project.setUserId(userId);
         
         docRef.set(project).get();
         System.out.println("✅ Created project with ID: " + project.getId());

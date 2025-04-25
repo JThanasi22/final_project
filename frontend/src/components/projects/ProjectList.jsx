@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
-
+import Layout from '../Layout';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -23,17 +21,11 @@ const ProjectList = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [creating, setCreating] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-    const isActiveRoute = (path) => location.pathname === path;
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        navigate('/login');
-    };
 
     // Fetch projects from backend
     useEffect(() => {
         const fetchProjects = async () => {
+            setLoading(true);
             try {
                 const token = localStorage.getItem('token'); // ✅ Get the token
                 if (!token) {
@@ -57,6 +49,9 @@ const ProjectList = () => {
                 setProjects(data); // ✅ Assuming you have setProjects defined
             } catch (error) {
                 console.error('Error fetching projects:', error);
+                setError('Failed to load projects. Please try again.');
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -133,150 +128,140 @@ const ProjectList = () => {
     };
 
     return (
-        <div className="dashboard-container">
-            <Sidebar sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} isActiveRoute={isActiveRoute} />
-            <div className="main-content">
-                <TopNavbar toggleSidebar={toggleSidebar} handleLogout={handleLogout} />
-        <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Typography variant="h5">Projects</Typography>
-                <Button variant="contained" color="primary" onClick={() => handleOpenDialog(null, 'create')}>
-                    New Project
-                </Button>
-            </Box>
-
-            {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-                    <CircularProgress />
+        <Layout>
+            <Box sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                    <Typography variant="h5">Projects</Typography>
+                    <Button variant="contained" color="primary" onClick={() => handleOpenDialog(null, 'create')}>
+                        New Project
+                    </Button>
                 </Box>
-            ) : error ? (
-                <Alert severity="error">{error}</Alert>
-            ) : (
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Project ID</TableCell>
-                                <TableCell>Title</TableCell>
-                                <TableCell>Description</TableCell>
-                                <TableCell>Requirements</TableCell>
-                                <TableCell>Type</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Creation Date</TableCell>
-                                <TableCell>End Date</TableCell>
-                                <TableCell>Price</TableCell>
-                                <TableCell>Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {projects.map((project) => (
-                                <TableRow key={project.id}>
-                                    <TableCell>{project.id}</TableCell>
-                                    <TableCell>{project.title}</TableCell>
-                                    <TableCell>{project.description}</TableCell>
-                                    <TableCell>{project.requirements}</TableCell>
-                                    <TableCell>{project.type}</TableCell>
-                                    <TableCell>
-                                        <Chip label={project.status} color={getStatusColor(project.status)} size="small" />
-                                    </TableCell>
-                                    <TableCell>{project.creationDate}</TableCell>
-                                    <TableCell>{project.endDate}</TableCell>
-                                    <TableCell>{project.price}</TableCell>
-                                    <TableCell>
-                                        <Button size="small" color="primary" onClick={() => handleOpenDialog(project, 'view')}>
-                                            View
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
 
-            {/* View / Create Dialog */}
-            <Dialog open={dialogMode === 'view' || dialogMode === 'create'} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-                <DialogTitle>{dialogMode === 'view' ? 'Project Details' : 'Create New Project'}</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <TextField
-                            label="Title"
-                            name="title"
-                            value={dialogMode === 'create' ? newProject.title : selectedProject?.title}
-                            onChange={handleInputChange}
-                            fullWidth
-                            disabled={dialogMode === 'view'}
-                        />
-                        <TextField
-                            label="Description"
-                            name="description"
-                            value={dialogMode === 'create' ? newProject.description : selectedProject?.description}
-                            onChange={handleInputChange}
-                            fullWidth
-                            disabled={dialogMode === 'view'}
-                            multiline
-                            rows={4}
-                        />
-                        <TextField
-                            label="Requirements"
-                            name="requirements"
-                            value={dialogMode === 'create' ? newProject.requirements : selectedProject?.requirements}
-                            onChange={handleInputChange}
-                            fullWidth
-                            disabled={dialogMode === 'view'}
-                        />
-                        <TextField
-                            select
-                            label="Type"
-                            name="type"
-                            value={dialogMode === 'create' ? newProject.type : selectedProject?.type}
-                            onChange={handleInputChange}
-                            fullWidth
-                            disabled={dialogMode === 'view'}
-                        >
-                            <MenuItem value="Wedding">Wedding</MenuItem>
-                            <MenuItem value="Corporate Event">Corporate Event</MenuItem>
-                            <MenuItem value="Product Photography">Product Photography</MenuItem>
-                            <MenuItem value="Portrait">Portrait</MenuItem>
-                            <MenuItem value="Other">Other..</MenuItem>
-                        </TextField>
-                        <TextField
-                            label="End Date"
-                            name="endDate"
-                            type="date"
-                            value={dialogMode === 'create' ? newProject.endDate : selectedProject?.endDate}
-                            onChange={handleInputChange}
-                            fullWidth
-                            disabled={dialogMode === 'view'}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                        {dialogMode === 'view' && (
-                            <TextField
-                                label="Status"
-                                value={selectedProject?.status}
-                                fullWidth
-                                disabled
-                            />
-                        )}
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+                        <CircularProgress />
                     </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog}>{dialogMode === 'view' ? 'Close' : 'Cancel'}</Button>
-                    {dialogMode === 'create' && (
-                        <Button
-                            onClick={handleCreateProject}
-                            variant="contained"
-                            color="primary"
-                            disabled={creating}
-                        >
-                            {creating ? <CircularProgress size={24} /> : 'Create'}
-                        </Button>
-                    )}
-                </DialogActions>
-            </Dialog>
-        </Box>
-            </div>
-        </div>
+                ) : error ? (
+                    <Alert severity="error">{error}</Alert>
+                ) : (
+                    <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+                        <Table sx={{ minWidth: 650 }}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>ID</TableCell>
+                                    <TableCell>Title</TableCell>
+                                    <TableCell>Description</TableCell>
+                                    <TableCell>Type</TableCell>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell>End Date</TableCell>
+                                    <TableCell>Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {projects.map((project) => (
+                                    <TableRow key={project.id}>
+                                        <TableCell>{project.id}</TableCell>
+                                        <TableCell>{project.title}</TableCell>
+                                        <TableCell>{project.description}</TableCell>
+                                        <TableCell>{project.type}</TableCell>
+                                        <TableCell>
+                                            <Chip label={project.status} color={getStatusColor(project.status)} size="small" />
+                                        </TableCell>
+                                        <TableCell>{project.endDate}</TableCell>
+                                        <TableCell>
+                                            <Button size="small" color="primary" onClick={() => handleOpenDialog(project, 'view')}>
+                                                View
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
+
+                {/* View / Create Dialog */}
+                <Dialog open={dialogMode === 'view' || dialogMode === 'create'} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+                    <DialogTitle>{dialogMode === 'view' ? 'Project Details' : 'Create New Project'}</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                label="Title"
+                                name="title"
+                                value={dialogMode === 'create' ? newProject.title : selectedProject?.title}
+                                onChange={handleInputChange}
+                                fullWidth
+                                disabled={dialogMode === 'view'}
+                            />
+                            <TextField
+                                label="Description"
+                                name="description"
+                                value={dialogMode === 'create' ? newProject.description : selectedProject?.description}
+                                onChange={handleInputChange}
+                                fullWidth
+                                disabled={dialogMode === 'view'}
+                                multiline
+                                rows={4}
+                            />
+                            <TextField
+                                label="Requirements"
+                                name="requirements"
+                                value={dialogMode === 'create' ? newProject.requirements : selectedProject?.requirements}
+                                onChange={handleInputChange}
+                                fullWidth
+                                disabled={dialogMode === 'view'}
+                            />
+                            <TextField
+                                select
+                                label="Type"
+                                name="type"
+                                value={dialogMode === 'create' ? newProject.type : selectedProject?.type}
+                                onChange={handleInputChange}
+                                fullWidth
+                                disabled={dialogMode === 'view'}
+                            >
+                                <MenuItem value="Wedding">Wedding</MenuItem>
+                                <MenuItem value="Corporate Event">Corporate Event</MenuItem>
+                                <MenuItem value="Product Photography">Product Photography</MenuItem>
+                                <MenuItem value="Portrait">Portrait</MenuItem>
+                                <MenuItem value="Other">Other..</MenuItem>
+                            </TextField>
+                            <TextField
+                                label="End Date"
+                                name="endDate"
+                                type="date"
+                                value={dialogMode === 'create' ? newProject.endDate : selectedProject?.endDate}
+                                onChange={handleInputChange}
+                                fullWidth
+                                disabled={dialogMode === 'view'}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                            {dialogMode === 'view' && (
+                                <TextField
+                                    label="Status"
+                                    value={selectedProject?.status}
+                                    fullWidth
+                                    disabled
+                                />
+                            )}
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCloseDialog}>{dialogMode === 'view' ? 'Close' : 'Cancel'}</Button>
+                        {dialogMode === 'create' && (
+                            <Button
+                                onClick={handleCreateProject}
+                                variant="contained"
+                                color="primary"
+                                disabled={creating}
+                            >
+                                {creating ? <CircularProgress size={24} /> : 'Create'}
+                            </Button>
+                        )}
+                    </DialogActions>
+                </Dialog>
+            </Box>
+        </Layout>
     );
 };
 

@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../layout/Sidebar';
-import TopNavbar from '../layout/TopNavbar';
 import {
     Card,
     CardContent,
@@ -25,6 +23,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Layout from '../Layout';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 
@@ -64,7 +64,7 @@ const TaskList = () => {
     const isActiveRoute = (path) => {
         return location.pathname === path;
     };
-
+    
     // Helper function to get auth header
     const getAuthHeader = () => {
         const token = localStorage.getItem('token');
@@ -401,306 +401,298 @@ const TaskList = () => {
 
     return (
         <Layout>
-            <div className="dashboard-container">
-                <Sidebar sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} isActiveRoute={isActiveRoute} />
-                <div className="main-content">
-                    <TopNavbar toggleSidebar={toggleSidebar} handleLogout={() => localStorage.clear()} />
-                    <div className="task-container" style={{ padding: '24px', height: '100%', width: '100%' }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                                <Typography variant="h4">Tasks</Typography>
-                                <Box sx={{ display: 'flex', gap: 2 }}>
-                                    <TextField select size="small" value={filter} onChange={(e) => setFilter(e.target.value)} sx={{ minWidth: 150 }}>
-                                        <MenuItem value="ALL">All Tasks</MenuItem>
-                                        <MenuItem value="PENDING">Pending</MenuItem>
-                                        <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
-                                        <MenuItem value="COMPLETED">Completed</MenuItem>
-                                    </TextField>
-                                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog(null, 'edit')}>
-                                        New Task
-                                    </Button>
-                                </Box>
-                            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%', maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                    <Typography variant="h4">Tasks</Typography>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TextField select size="small" value={filter} onChange={(e) => setFilter(e.target.value)} sx={{ minWidth: 150 }}>
+                            <MenuItem value="ALL">All Tasks</MenuItem>
+                            <MenuItem value="PENDING">Pending</MenuItem>
+                            <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                            <MenuItem value="COMPLETED">Completed</MenuItem>
+                        </TextField>
+                        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog(null, 'edit')}>
+                            New Task
+                        </Button>
+                    </Box>
+                </Box>
 
-                            {loading ? (
-                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                                    <CircularProgress />
-                                </Box>
-                            ) : filteredTasks.length === 0 ? (
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'center', 
-                                    alignItems: 'center', 
-                                    height: '200px',
-                                    background: '#fff',
-                                    borderRadius: '12px',
-                                    padding: '24px',
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : filteredTasks.length === 0 ? (
+                    <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        height: '200px',
+                        background: '#fff',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                        <Typography variant="h6" color="text.secondary">
+                            No tasks found. Create a new task to get started.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={3}>
+                        {filteredTasks.map((task) => (
+                            <Grid item xs={12} sm={6} md={4} key={task.id}>
+                                <Card sx={{
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
                                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                 }}>
-                                    <Typography variant="h6" color="text.secondary">
-                                        No tasks found. Create a new task to get started.
-                                    </Typography>
-                                </Box>
-                            ) : (
-                                <Grid container spacing={3}>
-                                    {filteredTasks.map((task) => (
-                                        <Grid item xs={12} sm={6} md={4} key={task.id}>
-                                            <Card sx={{
-                                                height: '100%',
+                                    <CardContent sx={{ flex: 1 }}>
+                                        <Box sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'flex-start',
+                                            mb: 2
+                                        }}>
+                                            <Typography variant="h6" component="div" sx={{ flex: 1 }}>
+                                                {task.title}
+                                            </Typography>
+                                            <Box sx={{
                                                 display: 'flex',
-                                                flexDirection: 'column',
-                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                gap: 1,
+                                                ml: 2
                                             }}>
-                                                <CardContent sx={{ flex: 1 }}>
-                                                    <Box sx={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'flex-start',
-                                                        mb: 2
-                                                    }}>
-                                                        <Typography variant="h6" component="div" sx={{ flex: 1 }}>
-                                                            {task.title}
-                                                        </Typography>
-                                                        <Box sx={{
-                                                            display: 'flex',
-                                                            gap: 1,
-                                                            ml: 2
-                                                        }}>
-                                                            <IconButton
-                                                                size="small"
-                                                                color="primary"
-                                                                onClick={() => handleOpenDialog(task, 'edit')}
-                                                            >
-                                                                <EditIcon />
-                                                            </IconButton>
-                                                            <IconButton
-                                                                size="small"
-                                                                color="error"
-                                                                onClick={() => handleOpenDialog(task, 'delete')}
-                                                            >
-                                                                <DeleteIcon />
-                                                            </IconButton>
-                                                        </Box>
-                                                    </Box>
-                                                    <Typography color="text.secondary" sx={{ mb: 2 }}>
-                                                        {task.description}
-                                                    </Typography>
-                                                    <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                                                        <Chip
-                                                            label={task.status}
-                                                            color={getStatusColor(task.status)}
-                                                            size="small"
-                                                        />
-                                                        <Chip
-                                                            label={task.priority}
-                                                            color={getPriorityColor(task.priority)}
-                                                            size="small"
-                                                        />
-                                                    </Box>
-                                                    <Box sx={{ mt: 'auto' }}>
-                                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                                            Project: {task.project}
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                                            Assigned to: {task.assignedTo}
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            Due: {formatDateForInput(task.dueDate)}
-                                                        </Typography>
-                                                    </Box>
-                                                </CardContent>
-                                            </Card>
-                                        </Grid>
-                                    ))}
-                                </Grid>
-                            )}
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => handleOpenDialog(task, 'edit')}
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => handleOpenDialog(task, 'delete')}
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Box>
+                                        </Box>
+                                        <Typography color="text.secondary" sx={{ mb: 2 }}>
+                                            {task.description}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                                            <Chip
+                                                label={task.status}
+                                                color={getStatusColor(task.status)}
+                                                size="small"
+                                            />
+                                            <Chip
+                                                label={task.priority}
+                                                color={getPriorityColor(task.priority)}
+                                                size="small"
+                                            />
+                                        </Box>
+                                        <Box sx={{ mt: 'auto' }}>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                                Project: {task.project}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                                Assigned to: {task.assignedTo}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Due: {formatDateForInput(task.dueDate)}
+                                            </Typography>
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
 
-                            {/* Edit Dialog */}
-                            <Dialog
-                                open={dialogMode === 'edit'}
-                                onClose={handleCloseDialog}
-                                maxWidth="sm"
+                {/* Edit Dialog */}
+                <Dialog
+                    open={dialogMode === 'edit'}
+                    onClose={handleCloseDialog}
+                    maxWidth="sm"
+                    fullWidth
+                >
+                    <DialogTitle>
+                        {selectedTask ? 'Edit Task' : 'New Task'}
+                    </DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                label="Title"
+                                name="title"
+                                value={editedTask?.title || ''}
+                                onChange={handleInputChange}
                                 fullWidth
+                                required
+                            />
+                            <TextField
+                                label="Description"
+                                name="description"
+                                value={editedTask?.description || ''}
+                                onChange={handleInputChange}
+                                fullWidth
+                                multiline
+                                rows={3}
+                            />
+                            <TextField
+                                select
+                                label="Status"
+                                name="status"
+                                value={editedTask?.status || ''}
+                                onChange={handleInputChange}
+                                fullWidth
+                                required
                             >
-                                <DialogTitle>
-                                    {selectedTask ? 'Edit Task' : 'New Task'}
-                                </DialogTitle>
-                                <DialogContent>
-                                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        <TextField
-                                            label="Title"
-                                            name="title"
-                                            value={editedTask?.title || ''}
-                                            onChange={handleInputChange}
-                                            fullWidth
-                                            required
-                                        />
-                                        <TextField
-                                            label="Description"
-                                            name="description"
-                                            value={editedTask?.description || ''}
-                                            onChange={handleInputChange}
-                                            fullWidth
-                                            multiline
-                                            rows={3}
-                                        />
-                                        <TextField
-                                            select
-                                            label="Status"
-                                            name="status"
-                                            value={editedTask?.status || ''}
-                                            onChange={handleInputChange}
-                                            fullWidth
-                                            required
-                                        >
-                                            <MenuItem value="Pending">Pending</MenuItem>
-                                            <MenuItem value="In Progress">In Progress</MenuItem>
-                                            <MenuItem value="Completed">Completed</MenuItem>
-                                        </TextField>
-                                        <TextField
-                                            select
-                                            label="Priority"
-                                            name="priority"
-                                            value={editedTask?.priority || ''}
-                                            onChange={handleInputChange}
-                                            fullWidth
-                                            required
-                                        >
-                                            <MenuItem value="High">High</MenuItem>
-                                            <MenuItem value="Medium">Medium</MenuItem>
-                                            <MenuItem value="Low">Low</MenuItem>
-                                        </TextField>
-                                        <TextField
-                                            label="Due Date"
-                                            name="dueDate"
-                                            type="date"
-                                            value={formatDateForInput(editedTask?.dueDate) || ''}
-                                            onChange={handleInputChange}
-                                            fullWidth
-                                            InputLabelProps={{ shrink: true }}
-                                            required
-                                        />
-                                        
-                                        {/* Project dropdown populated from database */}
-                                        <Autocomplete
-                                            options={projects}
-                                            getOptionLabel={(option) => {
-                                                // Handle case when option is null or undefined
-                                                if (!option) return '';
-                                                return option.name || option.title || '';
-                                            }}
-                                            isOptionEqualToValue={(option, value) => {
-                                                return option.id === (value?.id || editedTask?.projectId);
-                                            }}
-                                            value={projects.find(p => p.id === editedTask?.projectId) || null}
-                                            onChange={(event, newValue) => {
-                                                console.log('Selected project:', newValue);
-                                                setEditedTask(prev => ({
-                                                    ...prev,
-                                                    project: newValue ? newValue.name || newValue.title || '' : '',
-                                                    projectId: newValue ? newValue.id : null
-                                                }));
-                                            }}
-                                            renderInput={(params) => (
-                                                <TextField
-                                                    {...params}
-                                                    label="Project"
-                                                    fullWidth
-                                                    required
-                                                    error={projects.length === 0}
-                                                    helperText={projects.length === 0 ? "No projects available. Please create a project first." : ""}
-                                                />
-                                            )}
-                                            noOptionsText="No projects available"
-                                        />
-                                        
-                                        {/* User dropdown populated from database */}
-                                        <Autocomplete
-                                            options={users}
-                                            getOptionLabel={(option) => {
-                                                if (!option) return '';
-                                                if (option.name && option.surname) return `${option.name} ${option.surname}`;
-                                                if (option.name) return option.name;
-                                                return option.email || '';
-                                            }}
-                                            isOptionEqualToValue={(option, value) => {
-                                                return option.id === (value?.id || editedTask?.assignedToId);
-                                            }}
-                                            value={users.find(u => u.id === editedTask?.assignedToId) || null}
-                                            onChange={(event, newValue) => {
-                                                console.log('Selected user:', newValue);
-                                                setEditedTask(prev => ({
-                                                    ...prev,
-                                                    assignedTo: newValue ? 
-                                                        `${newValue.name || ''} ${newValue.surname || ''}`.trim() || newValue.email : '',
-                                                    assignedToId: newValue ? newValue.id : null
-                                                }));
-                                            }}
-                                            renderInput={(params) => (
-                                                <TextField
-                                                    {...params}
-                                                    label="Assigned To"
-                                                    fullWidth
-                                                    required
-                                                    error={users.length === 0}
-                                                    helperText={users.length === 0 ? "No users available. Please add users first." : ""}
-                                                />
-                                            )}
-                                            noOptionsText="No users available"
-                                        />
-                                    </Box>
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                                    <Button 
-                                        onClick={handleSave} 
-                                        variant="contained" 
-                                        color="primary"
-                                        disabled={!editedTask?.title || !editedTask?.status || !editedTask?.priority || !editedTask?.projectId || !editedTask?.assignedToId}
-                                    >
-                                        Save
-                                    </Button>
-                                </DialogActions>
-                            </Dialog>
-
-                            {/* Delete Confirmation Dialog */}
-                            <Dialog
-                                open={dialogMode === 'delete'}
-                                onClose={handleCloseDialog}
+                                <MenuItem value="Pending">Pending</MenuItem>
+                                <MenuItem value="In Progress">In Progress</MenuItem>
+                                <MenuItem value="Completed">Completed</MenuItem>
+                            </TextField>
+                            <TextField
+                                select
+                                label="Priority"
+                                name="priority"
+                                value={editedTask?.priority || ''}
+                                onChange={handleInputChange}
+                                fullWidth
+                                required
                             >
-                                <DialogTitle>Delete Task</DialogTitle>
-                                <DialogContent>
-                                    <Typography>
-                                        Are you sure you want to delete this task? This action cannot be undone.
-                                    </Typography>
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                                    <Button onClick={handleDelete} color="error" variant="contained">
-                                        Delete
-                                    </Button>
-                                </DialogActions>
-                            </Dialog>
-
-                            {/* Snackbar for notifications */}
-                            <Snackbar
-                                open={snackbar.open}
-                                autoHideDuration={6000}
-                                onClose={handleCloseSnackbar}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                            >
-                                <Alert 
-                                    onClose={handleCloseSnackbar} 
-                                    severity={snackbar.severity} 
-                                    sx={{ width: '100%' }}
-                                >
-                                    {snackbar.message}
-                                </Alert>
-                            </Snackbar>
+                                <MenuItem value="High">High</MenuItem>
+                                <MenuItem value="Medium">Medium</MenuItem>
+                                <MenuItem value="Low">Low</MenuItem>
+                            </TextField>
+                            <TextField
+                                label="Due Date"
+                                name="dueDate"
+                                type="date"
+                                value={formatDateForInput(editedTask?.dueDate) || ''}
+                                onChange={handleInputChange}
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                                required
+                            />
+                            
+                            {/* Project dropdown populated from database */}
+                            <Autocomplete
+                                options={projects}
+                                getOptionLabel={(option) => {
+                                    // Handle case when option is null or undefined
+                                    if (!option) return '';
+                                    return option.name || option.title || '';
+                                }}
+                                isOptionEqualToValue={(option, value) => {
+                                    return option.id === (value?.id || editedTask?.projectId);
+                                }}
+                                value={projects.find(p => p.id === editedTask?.projectId) || null}
+                                onChange={(event, newValue) => {
+                                    console.log('Selected project:', newValue);
+                                    setEditedTask(prev => ({
+                                        ...prev,
+                                        project: newValue ? newValue.name || newValue.title || '' : '',
+                                        projectId: newValue ? newValue.id : null
+                                    }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Project"
+                                        fullWidth
+                                        required
+                                        error={projects.length === 0}
+                                        helperText={projects.length === 0 ? "No projects available. Please create a project first." : ""}
+                                    />
+                                )}
+                                noOptionsText="No projects available"
+                            />
+                            
+                            {/* User dropdown populated from database */}
+                            <Autocomplete
+                                options={users}
+                                getOptionLabel={(option) => {
+                                    if (!option) return '';
+                                    if (option.name && option.surname) return `${option.name} ${option.surname}`;
+                                    if (option.name) return option.name;
+                                    return option.email || '';
+                                }}
+                                isOptionEqualToValue={(option, value) => {
+                                    return option.id === (value?.id || editedTask?.assignedToId);
+                                }}
+                                value={users.find(u => u.id === editedTask?.assignedToId) || null}
+                                onChange={(event, newValue) => {
+                                    console.log('Selected user:', newValue);
+                                    setEditedTask(prev => ({
+                                        ...prev,
+                                        assignedTo: newValue ? 
+                                            `${newValue.name || ''} ${newValue.surname || ''}`.trim() || newValue.email : '',
+                                        assignedToId: newValue ? newValue.id : null
+                                    }));
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Assigned To"
+                                        fullWidth
+                                        required
+                                        error={users.length === 0}
+                                        helperText={users.length === 0 ? "No users available. Please add users first." : ""}
+                                    />
+                                )}
+                                noOptionsText="No users available"
+                            />
                         </Box>
-                    </div>
-                </div>
-            </div>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCloseDialog}>Cancel</Button>
+                        <Button 
+                            onClick={handleSave} 
+                            variant="contained" 
+                            color="primary"
+                            disabled={!editedTask?.title || !editedTask?.status || !editedTask?.priority || !editedTask?.projectId || !editedTask?.assignedToId}
+                        >
+                            Save
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog
+                    open={dialogMode === 'delete'}
+                    onClose={handleCloseDialog}
+                >
+                    <DialogTitle>Delete Task</DialogTitle>
+                    <DialogContent>
+                        <Typography>
+                            Are you sure you want to delete this task? This action cannot be undone.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCloseDialog}>Cancel</Button>
+                        <Button onClick={handleDelete} color="error" variant="contained">
+                            Delete
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Snackbar for notifications */}
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={6000}
+                    onClose={handleCloseSnackbar}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert 
+                        onClose={handleCloseSnackbar} 
+                        severity={snackbar.severity} 
+                        sx={{ width: '100%' }}
+                    >
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
+            </Box>
         </Layout>
     );
 };
