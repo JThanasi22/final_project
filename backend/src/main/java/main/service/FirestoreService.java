@@ -5,19 +5,29 @@ import com.google.cloud.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
 import main.model.Project;
+import main.model.Task;
 import main.model.User;
+import main.model.Invoice;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.text.SimpleDateFormat;
 
 @Service
 public class FirestoreService {
 
     private static final String USER_COLLECTION = "users";
     private static final String TOKEN_COLLECTION = "reset_tokens";
+    private static final String PROJECT_COLLECTION = "projects";
+    private static final String TASK_COLLECTION = "tasks";
+    private static final String INVOICE_COLLECTION = "invoices";
 
     private final Firestore db;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -141,57 +151,406 @@ public class FirestoreService {
         System.out.println("🗑️ Reset code deleted for: " + email);
     }
 
+    // ----------------- Admin Operations -----------------
 
-    // ----------------- Project -----------------
-
-    private static final String PENDING_COLLECTION = "pending_projects";
-    private static final String[] PROJECT_COLLECTIONS = {
-            "pending_projects", "active_projects", "finished_projects"
-    };
-
-    // Create a project (default collection: pending_projects, default status: pending)
-    public void createProject(Project project, String userId) {
-        CollectionReference collectionRef = db.collection(PENDING_COLLECTION);
-        DocumentReference userRef = db.collection("users").document(userId);
-
-        // Set defaults
-        project.setStatus("pending");
-        project.setClientId(userRef); // Set the clientId as DocumentReference
-        project.setId(null);          // Firestore will assign the ID from docRef.getId()
-
-        // Set creationDate using Java time (formatted like endDate)
-        String formattedCreationDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        project.setCreationDate(formattedCreationDate);
-
-        // Add the project to Firestore and get the auto-generated ID
-        DocumentReference docRef = collectionRef.document();
-        project.setId(docRef.getId());  // Assign the generated ID to the project object
-
-        // Set the project data
-        ApiFuture<WriteResult> result = docRef.set(project);
-    }
-
-    // Fetch projects by user ID (search across all collections)
-    public List<Project> getProjectsByUserId(String userId) {
-        List<Project> allProjects = new ArrayList<>();
-        DocumentReference userRef = db.collection("users").document(userId);
-
-        for (String collection : PROJECT_COLLECTIONS) {
-            try {
-                ApiFuture<QuerySnapshot> future = db.collection(collection)
-                        .whereEqualTo("clientId", userRef)
-                        .get();
-
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                for (DocumentSnapshot doc : documents) {
-                    Project project = doc.toObject(Project.class);
-                    project.setId(doc.getId());  // Attach the document ID
-                    allProjects.add(project);
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+    public List<User> getAllUsers() throws ExecutionException, InterruptedException {
+        List<User> users = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(USER_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            User user = doc.toObject(User.class);
+            if (user != null) {
+                // Don't send password hash to frontend
+                user.setPassword(null);
+                users.add(user);
             }
         }
-        return allProjects;
+        
+        System.out.println("✅ Retrieved " + users.size() + " users");
+        return users;
+    }
+
+    public boolean updateUserRole(String userId, String newRole) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(USER_COLLECTION).document(userId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.update("role", newRole).get();
+            System.out.println("✅ Updated role for user " + userId + " to " + newRole);
+            return true;
+        } else {
+            System.out.println("❌ User not found: " + userId);
+            return false;
+        }
+    }
+
+    public boolean deleteUser(String userId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(USER_COLLECTION).document(userId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted user: " + userId);
+            return true;
+        } else {
+            System.out.println("❌ User not found: " + userId);
+            return false;
+        }
+    }
+
+    public Map<String, Object> getSystemStats() throws ExecutionException, InterruptedException {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Count total users
+        QuerySnapshot userSnapshot = db.collection(USER_COLLECTION).get().get();
+        long totalUsers = userSnapshot.size();
+        
+        // Count admin users
+        QuerySnapshot adminSnapshot = db.collection(USER_COLLECTION)
+                .whereEqualTo("role", "a")
+                .get().get();
+        long adminUsers = adminSnapshot.size();
+        
+        stats.put("totalUsers", totalUsers);
+        stats.put("adminUsers", adminUsers);
+        stats.put("regularUsers", totalUsers - adminUsers);
+        
+        return stats;
+    }
+    
+    // ----------------- Project Operations -----------------
+    
+    public List<Project> getAllProjects() throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(PROJECT_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + projects.size() + " projects");
+        return projects;
+    }
+    
+    public List<Project> getProjectsByUser(String userId) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(PROJECT_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + projects.size() + " projects for user " + userId);
+        return projects;
+    }
+    
+    public Project getProjectById(String projectId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot doc = db.collection(PROJECT_COLLECTION).document(projectId).get().get();
+        if (doc.exists()) {
+            return doc.toObject(Project.class);
+        }
+        return null;
+    }
+    
+    public String createProject(Project project) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document();
+        project.setId(docRef.getId());
+        
+        docRef.set(project).get();
+        System.out.println("✅ Created project with ID: " + project.getId());
+        
+        return project.getId();
+    }
+    
+    public boolean updateProject(Project project) throws ExecutionException, InterruptedException {
+        if (project.getId() == null) {
+            System.out.println("❌ Cannot update project with null ID");
+            return false;
+        }
+        
+        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document(project.getId());
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.set(project).get();
+            System.out.println("✅ Updated project: " + project.getId());
+            return true;
+        } else {
+            System.out.println("❌ Project not found: " + project.getId());
+            return false;
+        }
+    }
+    
+    public boolean deleteProject(String projectId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document(projectId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted project: " + projectId);
+            return true;
+        } else {
+            System.out.println("❌ Project not found: " + projectId);
+            return false;
+        }
+    }
+
+    // ----------------- Task Operations -----------------
+    
+    public List<Task> getAllTasks() throws ExecutionException, InterruptedException {
+        List<Task> tasks = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(TASK_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Task task = doc.toObject(Task.class);
+            if (task != null) {
+                tasks.add(task);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + tasks.size() + " tasks");
+        return tasks;
+    }
+    
+    public List<Task> getTasksByUser(String userId) throws ExecutionException, InterruptedException {
+        List<Task> tasks = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(TASK_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Task task = doc.toObject(Task.class);
+            if (task != null) {
+                tasks.add(task);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + tasks.size() + " tasks for user " + userId);
+        return tasks;
+    }
+    
+    public List<Task> getTasksByProject(String projectId) throws ExecutionException, InterruptedException {
+        List<Task> tasks = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(TASK_COLLECTION)
+                .whereEqualTo("projectId", projectId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Task task = doc.toObject(Task.class);
+            if (task != null) {
+                tasks.add(task);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + tasks.size() + " tasks for project " + projectId);
+        return tasks;
+    }
+    
+    public List<Task> getTasksAssignedToUser(String assignedToId) throws ExecutionException, InterruptedException {
+        List<Task> tasks = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(TASK_COLLECTION)
+                .whereEqualTo("assignedToId", assignedToId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Task task = doc.toObject(Task.class);
+            if (task != null) {
+                tasks.add(task);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + tasks.size() + " tasks assigned to user " + assignedToId);
+        return tasks;
+    }
+    
+    public Task getTaskById(String taskId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot doc = db.collection(TASK_COLLECTION).document(taskId).get().get();
+        if (doc.exists()) {
+            System.out.println("✅ Retrieved task: " + taskId);
+            return doc.toObject(Task.class);
+        } else {
+            System.out.println("❌ Task not found: " + taskId);
+            return null;
+        }
+    }
+    
+    public String createTask(Task task) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(TASK_COLLECTION).document();
+        task.setId(docRef.getId());
+        
+        // Set creation and update timestamps
+        Date now = new Date();
+        task.setCreatedAt(now);
+        task.setUpdatedAt(now);
+        
+        docRef.set(task).get();
+        System.out.println("✅ Created task: " + task.getId());
+        
+        return task.getId();
+    }
+    
+    public boolean updateTask(Task task) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(TASK_COLLECTION).document(task.getId());
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            // Update the timestamp
+            task.setUpdatedAt(new Date());
+            
+            docRef.set(task).get();
+            System.out.println("✅ Updated task: " + task.getId());
+            return true;
+        } else {
+            System.out.println("❌ Task not found: " + task.getId());
+            return false;
+        }
+    }
+    
+    public boolean deleteTask(String taskId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(TASK_COLLECTION).document(taskId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted task: " + taskId);
+            return true;
+        } else {
+            System.out.println("❌ Task not found: " + taskId);
+            return false;
+        }
+    }
+
+    // ----------------- Invoice Management -----------------
+
+    public List<Invoice> getAllInvoices() throws ExecutionException, InterruptedException {
+        List<Invoice> invoices = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(INVOICE_COLLECTION).get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Invoice invoice = doc.toObject(Invoice.class);
+            if (invoice != null) {
+                invoices.add(invoice);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + invoices.size() + " invoices");
+        return invoices;
+    }
+
+    public List<Invoice> getInvoicesByClientId(String clientId) throws ExecutionException, InterruptedException {
+        List<Invoice> invoices = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection(INVOICE_COLLECTION)
+                .whereEqualTo("clientId", clientId)
+                .get().get();
+        
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Invoice invoice = doc.toObject(Invoice.class);
+            if (invoice != null) {
+                invoices.add(invoice);
+            }
+        }
+        
+        System.out.println("✅ Retrieved " + invoices.size() + " invoices for client: " + clientId);
+        return invoices;
+    }
+
+    public Invoice getInvoiceById(String invoiceId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot doc = db.collection(INVOICE_COLLECTION).document(invoiceId).get().get();
+        if (doc.exists()) {
+            Invoice invoice = doc.toObject(Invoice.class);
+            System.out.println("✅ Retrieved invoice: " + invoiceId);
+            return invoice;
+        }
+        System.out.println("❌ Invoice not found: " + invoiceId);
+        return null;
+    }
+
+    public String saveInvoice(Invoice invoice) throws ExecutionException, InterruptedException {
+        try {
+            // Validate the invoice object
+            if (invoice == null) {
+                throw new IllegalArgumentException("Invoice object cannot be null");
+            }
+            
+            if (invoice.getClientId() == null || invoice.getClientId().isEmpty()) {
+                throw new IllegalArgumentException("Client ID is required");
+            }
+            
+            // If no ID is provided, create a new invoice number with pattern INV-YYYY-XXXX
+            if (invoice.getId() == null || invoice.getId().isEmpty()) {
+                String invoiceNumber = "INV-" + new SimpleDateFormat("yyyy").format(new Date()) + "-" 
+                    + String.format("%04d", (int)(Math.random() * 10000));
+                invoice.setId(invoiceNumber);
+            }
+            
+            // Set created date if not provided
+            if (invoice.getCreatedAt() == null || invoice.getCreatedAt().isEmpty()) {
+                invoice.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+            }
+            
+            // Make sure numeric fields are properly set
+            if (invoice.getTax() <= 0 && invoice.getAmount() > 0) {
+                // Calculate tax if not provided (10%)
+                invoice.setTax(invoice.getAmount() * 0.1);
+            }
+            
+            if (invoice.getTotal() <= 0) {
+                // Calculate total if not provided
+                invoice.setTotal(invoice.getAmount() + invoice.getTax());
+            }
+            
+            // Create document reference with the invoice ID
+            DocumentReference docRef = db.collection(INVOICE_COLLECTION).document(invoice.getId());
+            
+            // Save the invoice
+            System.out.println("Saving invoice: " + invoice.toString());
+            ApiFuture<WriteResult> result = docRef.set(invoice);
+            result.get(); // Wait for completion
+            
+            System.out.println("✅ Saved invoice with ID: " + invoice.getId());
+            return invoice.getId();
+        } catch (Exception e) {
+            System.err.println("❌ Error saving invoice: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public boolean updateInvoice(String invoiceId, Invoice updatedInvoice) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(INVOICE_COLLECTION).document(invoiceId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            // Ensure the ID remains the same
+            updatedInvoice.setId(invoiceId);
+            docRef.set(updatedInvoice).get();
+            System.out.println("✅ Updated invoice: " + invoiceId);
+            return true;
+        }
+        
+        System.out.println("❌ Invoice not found for update: " + invoiceId);
+        return false;
+    }
+
+    public boolean deleteInvoice(String invoiceId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection(INVOICE_COLLECTION).document(invoiceId);
+        DocumentSnapshot doc = docRef.get().get();
+        
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted invoice: " + invoiceId);
+            return true;
+        }
+        
+        System.out.println("❌ Invoice not found for deletion: " + invoiceId);
+        return false;
     }
 }

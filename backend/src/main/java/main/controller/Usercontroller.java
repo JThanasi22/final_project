@@ -1,9 +1,12 @@
 package main.controller;
 
 import main.model.User;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import main.service.FirestoreService;
+import main.util.JwtUtil;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -27,5 +30,27 @@ public class Usercontroller {
             e.printStackTrace(); // 👈 Log the error
             return "Error: " + e.getMessage();
         }
+    }
+    
+    @GetMapping
+    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) 
+            throws ExecutionException, InterruptedException {
+        
+        String email = getUserEmailFromToken(authHeader);
+        if (email == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        
+        List<User> users = firestoreService.getAllUsers();
+        return ResponseEntity.ok(users);
+    }
+    
+    private String getUserEmailFromToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        
+        String token = authHeader.substring(7);
+        return JwtUtil.extractEmail(token);
     }
 }
