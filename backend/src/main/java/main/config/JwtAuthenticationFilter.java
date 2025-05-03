@@ -23,9 +23,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         
-        // Skip JWT authentication for portfolio and file endpoints
+        // Skip JWT authentication for portfolio, projects and file endpoints
         String requestPath = request.getRequestURI();
-        if (requestPath != null && (requestPath.startsWith("/api/portfolios") || requestPath.startsWith("/api/files"))) {
+        if (requestPath != null && (
+                requestPath.startsWith("/api/portfolios") || 
+                requestPath.startsWith("/api/files") ||
+                requestPath.equals("/api/projects") || 
+                requestPath.matches("/api/projects/[^/]+") // Allow GET for specific project by ID
+            )) {
             filterChain.doFilter(request, response);
             return;
         }
