@@ -5,6 +5,9 @@ import {
     Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
     TextField, MenuItem, CircularProgress, Alert
 } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Sidebar from '../layout/Sidebar';
+import TopNavbar from '../layout/TopNavbar';
 
 const ProjectList = () => {
     const [projects, setProjects] = useState([]);
@@ -21,13 +24,24 @@ const ProjectList = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [creating, setCreating] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+    const isActiveRoute = (path) => location.pathname === path;
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     // Fetch projects from backend
     useEffect(() => {
         const fetchProjects = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem('token'); // ✅ Get the token
+                const token = localStorage.getItem('token');
                 if (!token) {
                     console.error('No token found!');
                     return;
@@ -36,7 +50,7 @@ const ProjectList = () => {
                 const response = await fetch('http://localhost:8080/api/projects', {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${token}`,  // ✅ Include your token here!
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -46,7 +60,7 @@ const ProjectList = () => {
                 }
 
                 const data = await response.json();
-                setProjects(data); // ✅ Assuming you have setProjects defined
+                setProjects(data);
             } catch (error) {
                 console.error('Error fetching projects:', error);
                 setError('Failed to load projects. Please try again.');
@@ -73,6 +87,7 @@ const ProjectList = () => {
             description: '',
             requirements: '',
             endDate: '',
+            price: '',
             type: ''
         });
     };
