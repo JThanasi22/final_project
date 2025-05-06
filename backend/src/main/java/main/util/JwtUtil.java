@@ -59,18 +59,4 @@ public class JwtUtil {
                 .getBody()
                 .get("role", String.class);
     }
-    public static String extractUserId(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .parseClaimsJws(token)
-                .getBody()
-                .get("id", String.class);  // Getting the "id" claim from your token
-    }
-    public static String extractRole(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .parseClaimsJws(token)
-                .getBody()
-                .get("role", String.class);
-    }
 }

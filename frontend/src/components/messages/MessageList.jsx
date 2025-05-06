@@ -1,140 +1,115 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-    Box,
-    List,
-    ListItem,
-    ListItemText,
-    ListItemAvatar,
-    Avatar,
-    Typography,
-    Paper,
-    TextField,
-    IconButton,
-    Divider,
-    Badge,
-    InputAdornment,
+    Box, List, ListItem, ListItemText, ListItemAvatar, Avatar,
+    Typography, Paper, TextField, IconButton, Divider, Badge, InputAdornment
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SearchIcon from '@mui/icons-material/Search';
 import { deepOrange, deepPurple, blue } from '@mui/material/colors';
-
-const mockMessages = [
-    {
-        id: 1,
-        contactName: 'John Smith',
-        avatar: null,
-        messages: [
-            {
-                id: 1,
-                text: 'Hi, I wanted to discuss the wedding photoshoot package',
-                timestamp: '2024-03-15T10:30:00',
-                sender: 'contact',
-                read: true
-            },
-            {
-                id: 2,
-                text: "Of course! I'd be happy to go through the details with you.",
-                timestamp: '2024-03-15T10:35:00',
-                sender: 'user',
-                read: true
-            },
-            {
-                id: 3,
-                text: 'What date are you planning for the wedding?',
-                timestamp: '2024-03-15T10:36:00',
-                sender: 'user',
-                read: true
-            }
-        ]
-    },
-    {
-        id: 2,
-        contactName: 'Sarah Johnson',
-        avatar: null,
-        messages: [
-            {
-                id: 1,
-                text: 'The product photos look amazing!',
-                timestamp: '2024-03-14T15:20:00',
-                sender: 'contact',
-                read: false
-            }
-        ]
-    },
-    {
-        id: 3,
-        contactName: 'Tech Solutions Inc.',
-        avatar: null,
-        messages: [
-            {
-                id: 1,
-                text: 'Can we schedule the corporate photoshoot for next week?',
-                timestamp: '2024-03-13T09:15:00',
-                sender: 'contact',
-                read: true
-            },
-            {
-                id: 2,
-                text: 'Yes, I have availability on Tuesday and Thursday',
-                timestamp: '2024-03-13T09:30:00',
-                sender: 'user',
-                read: true
-            }
-        ]
-    }
-];
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import jwtDecode from 'jwt-decode';
+import axios from 'axios';
 
 const MessageList = () => {
     const [conversations, setConversations] = useState([]);
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [newMessage, setNewMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [stompClient, setStompClient] = useState(null);
+    const messageEndRef = useRef(null);
+
+    const token = localStorage.getItem('token');
+    const user = jwtDecode(token); // Assumes token has { userId, email, role }
 
     useEffect(() => {
-        // Simulating API call with mock data
-        setConversations(mockMessages);
-    }, []);
-
-    const handleSendMessage = () => {
-        if (!newMessage.trim() || !selectedConversation) return;
-
-        const updatedConversations = conversations.map(conv => {
-            if (conv.id === selectedConversation.id) {
-                return {
-                    ...conv,
-                    messages: [
-                        ...conv.messages,
-                        {
-                            id: conv.messages.length + 1,
-                            text: newMessage,
-                            timestamp: new Date().toISOString(),
-                            sender: 'user',
-                            read: true,
-                        },
-                    ],
-                };
+        const client = new Client({
+            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            reconnectDelay: 5000,
+            onConnect: () => {
+                client.subscribe('/topic/messages', (msg) => {
+                    const message = JSON.parse(msg.body);
+                    if (message.senderId === user.userId || message.receiverId === user.userId) {
+                        updateMessageList(message);
+                    }
+                });
             }
-            return conv;
         });
 
-        setConversations(updatedConversations);
+        client.activate();
+        setStompClient(client);
+        return () => client.deactivate();
+    }, []);
+
+    // 2. Load initial contacts list
+    useEffect(() => {
+        const loadConversations = async () => {
+            try {
+                const res = await axios.get(`http://localhost:8080/api/messages/contacts/${user.userId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                // Expecting an array of { id, contactName }
+                const contacts = res.data.map(contact => ({
+                    ...contact,
+                    messages: [] // will be loaded on click
+                }));
+
+                setConversations(contacts);
+            } catch (err) {
+                console.error('Error loading conversations:', err);
+            }
+        };
+
+        loadConversations();
+    }, []);
+
+    useEffect(() => {
+        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [selectedConversation]);
+
+    const updateMessageList = (msg) => {
+        setConversations(prev =>
+            prev.map(conv => {
+                if (conv.id === msg.senderId || conv.id === msg.receiverId) {
+                    return { ...conv, messages: [...(conv.messages || []), msg] };
+                }
+                return conv;
+            })
+        );
+
+        if (selectedConversation && (msg.senderId === selectedConversation.id || msg.receiverId === selectedConversation.id)) {
+            setSelectedConversation(prev => ({
+                ...prev,
+                messages: [...(prev.messages || []), msg]
+            }));
+        }
+    };
+
+    const handleSendMessage = () => {
+        if (!newMessage.trim() || !selectedConversation || !stompClient) return;
+
+        const msg = {
+            senderId: user.userId,
+            receiverId: selectedConversation.id,
+            content: newMessage,
+            timestamp: new Date().toISOString()
+        };
+
+        stompClient.publish({
+            destination: '/app/chat.send',
+            body: JSON.stringify(msg)
+        });
+
         setNewMessage('');
     };
 
-    const handleSelectConversation = (conversation) => {
-        // Mark messages as read
-        const updatedConversations = conversations.map(conv => {
-            if (conv.id === conversation.id) {
-                return {
-                    ...conv,
-                    messages: conv.messages.map(msg => ({ ...msg, read: true })),
-                };
-            }
-            return conv;
+    const handleSelectConversation = async (conv) => {
+        const res = await axios.get(`http://localhost:8080/api/messages/${user.userId}/${conv.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-
-        setConversations(updatedConversations);
-        setSelectedConversation(conversation);
+        const updated = { ...conv, messages: res.data };
+        setSelectedConversation(updated);
     };
 
     const getAvatarColor = (name) => {
@@ -143,9 +118,7 @@ const MessageList = () => {
         return colors[charCode % colors.length];
     };
 
-    const getUnreadCount = (conversation) => {
-        return conversation.messages.filter(msg => !msg.read && msg.sender === 'contact').length;
-    };
+    const getUnreadCount = (conv) => conv.messages?.filter(msg => !msg.read && msg.senderId !== user.userId).length || 0;
 
     const filteredConversations = conversations.filter(conv =>
         conv.contactName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -153,8 +126,8 @@ const MessageList = () => {
 
     return (
         <Box sx={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
-            {/* Conversations List */}
-            <Paper sx={{ width: 320, borderRadius: 0 }}>
+            {/* Sidebar */}
+            <Paper sx={{ width: 320 }}>
                 <Box sx={{ p: 2 }}>
                     <TextField
                         fullWidth
@@ -173,36 +146,26 @@ const MessageList = () => {
                 </Box>
                 <Divider />
                 <List sx={{ overflow: 'auto', height: 'calc(100% - 80px)' }}>
-                    {filteredConversations.map((conversation) => (
+                    {filteredConversations.map(conv => (
                         <ListItem
-                            key={conversation.id}
+                            key={conv.id}
                             button
-                            selected={selectedConversation?.id === conversation.id}
-                            onClick={() => handleSelectConversation(conversation)}
+                            selected={selectedConversation?.id === conv.id}
+                            onClick={() => handleSelectConversation(conv)}
                         >
                             <ListItemAvatar>
-                                <Badge
-                                    badgeContent={getUnreadCount(conversation)}
-                                    color="error"
-                                    overlap="circular"
-                                >
-                                    <Avatar
-                                        sx={{
-                                            bgcolor: getAvatarColor(conversation.contactName),
-                                        }}
-                                    >
-                                        {conversation.contactName[0]}
+                                <Badge badgeContent={getUnreadCount(conv)} color="error">
+                                    <Avatar sx={{ bgcolor: getAvatarColor(conv.contactName) }}>
+                                        {conv.contactName[0]}
                                     </Avatar>
                                 </Badge>
                             </ListItemAvatar>
                             <ListItemText
-                                primary={conversation.contactName}
-                                secondary={conversation.messages[conversation.messages.length - 1].text}
+                                primary={conv.contactName}
+                                secondary={conv.messages?.slice(-1)[0]?.content || ''}
                                 secondaryTypographyProps={{
                                     noWrap: true,
-                                    style: {
-                                        maxWidth: '200px',
-                                    },
+                                    style: { maxWidth: '200px' },
                                 }}
                             />
                         </ListItem>
@@ -210,54 +173,46 @@ const MessageList = () => {
                 </List>
             </Paper>
 
-            {/* Messages View */}
+            {/* Message Pane */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 {selectedConversation ? (
                     <>
-                        {/* Messages Header */}
                         <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                            <Typography variant="h6">
-                                {selectedConversation.contactName}
-                            </Typography>
+                            <Typography variant="h6">{selectedConversation.contactName}</Typography>
                         </Box>
 
-                        {/* Messages Content */}
                         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-                            {selectedConversation.messages.map((message) => (
+                            {selectedConversation.messages?.map((msg, idx) => (
                                 <Box
-                                    key={message.id}
+                                    key={idx}
                                     sx={{
                                         display: 'flex',
-                                        justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-                                        mb: 2,
+                                        justifyContent: msg.senderId === user.userId ? 'flex-end' : 'flex-start',
+                                        mb: 2
                                     }}
                                 >
                                     <Box
                                         sx={{
                                             maxWidth: '70%',
-                                            bgcolor: message.sender === 'user' ? 'primary.main' : 'grey.100',
-                                            color: message.sender === 'user' ? 'white' : 'text.primary',
+                                            bgcolor: msg.senderId === user.userId ? 'primary.main' : 'grey.100',
+                                            color: msg.senderId === user.userId ? 'white' : 'text.primary',
                                             p: 2,
-                                            borderRadius: 2,
+                                            borderRadius: 2
                                         }}
                                     >
-                                        <Typography>{message.text}</Typography>
+                                        <Typography>{msg.content}</Typography>
                                         <Typography
                                             variant="caption"
-                                            sx={{
-                                                display: 'block',
-                                                mt: 0.5,
-                                                color: message.sender === 'user' ? 'rgba(255,255,255,0.7)' : 'text.secondary',
-                                            }}
+                                            sx={{ display: 'block', mt: 0.5, color: msg.senderId === user.userId ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}
                                         >
-                                            {new Date(message.timestamp).toLocaleTimeString()}
+                                            {new Date(msg.timestamp).toLocaleTimeString()}
                                         </Typography>
                                     </Box>
                                 </Box>
                             ))}
+                            <div ref={messageEndRef} />
                         </Box>
 
-                        {/* Message Input */}
                         <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
                             <TextField
                                 fullWidth
@@ -273,10 +228,7 @@ const MessageList = () => {
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
-                                            <IconButton
-                                                onClick={handleSendMessage}
-                                                disabled={!newMessage.trim()}
-                                            >
+                                            <IconButton onClick={handleSendMessage} disabled={!newMessage.trim()}>
                                                 <SendIcon />
                                             </IconButton>
                                         </InputAdornment>
@@ -286,14 +238,7 @@ const MessageList = () => {
                         </Box>
                     </>
                 ) : (
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                        }}
-                    >
+                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Typography variant="body1" color="text.secondary">
                             Select a conversation to start messaging
                         </Typography>

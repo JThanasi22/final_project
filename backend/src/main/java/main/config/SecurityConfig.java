@@ -28,24 +28,41 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Order matters - most specific first
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Permit all HTTP methods for portfolios
+
+                        // WebSocket endpoints
+                        .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
+
+                        // Public portfolio access
                         .requestMatchers(HttpMethod.GET, "/api/portfolios/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/portfolios/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/portfolios/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/portfolios/**").permitAll()
-                        // Permit file uploads and downloads
+
+                        // File endpoints
                         .requestMatchers("/api/files/**").permitAll()
-                        // Other permitted paths
-                        .requestMatchers("/api/invoices/**").permitAll()
+
+                        // Auth and password reset
                         .requestMatchers("/api/users/signup").permitAll()
                         .requestMatchers("/api/users/login").permitAll()
                         .requestMatchers("/api/users/request-reset").permitAll()
                         .requestMatchers("/api/users/verify-reset-code").permitAll()
                         .requestMatchers("/api/users/reset-password").permitAll()
+
+                        // ✅ Allow email lookup only for authenticated users
+                        .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated()
+
+                        // Authenticated user info
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/users/update").authenticated()
-                        .requestMatchers("/api/projects").authenticated()
 
+                        // Projects
+                        .requestMatchers("/api/projects", "/api/projects/**").authenticated()
+
+                        // Messages
+                        .requestMatchers(HttpMethod.GET, "/api/messages/conversations/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/messages/**").authenticated()
+
+                        // Catch-all
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -56,10 +73,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*")); // Allow all origins
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // use patterns instead of "*"
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(false);
+        config.setAllowCredentials(true); // now allowed with origin patterns
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

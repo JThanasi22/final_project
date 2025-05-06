@@ -1,5 +1,6 @@
 package main.controller;
 
+import main.dto.UserDTO;
 import main.model.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,4 +54,14 @@ public class Usercontroller {
         String token = authHeader.substring(7);
         return JwtUtil.extractEmail(token);
     }
+
+    @GetMapping("/by-email/{email}")
+    public ResponseEntity<UserDTO> getUserByEmail(@PathVariable String email) throws ExecutionException, InterruptedException {
+        User user = firestoreService.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(new UserDTO(user.getId(), user.getName()));
+    }
+
 }

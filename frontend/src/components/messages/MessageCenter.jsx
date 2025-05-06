@@ -1,86 +1,19 @@
+// MessageCenter.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    Grid,
-    Paper,
-    List,
-    ListItem,
-    ListItemText,
-    ListItemAvatar,
-    Avatar,
-    Typography,
-    Box,
-    TextField,
-    IconButton,
-    Divider,
-    Badge,
-    Card,
-    CardHeader,
-    CardContent,
-    Container,
+    Box, Grid, Paper, List, ListItem, ListItemAvatar, Avatar, ListItemText,
+    Typography, TextField, IconButton, Badge, Container, Card, CardHeader, CardContent, Button, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SearchIcon from '@mui/icons-material/Search';
-import { styled } from '@mui/material/styles';
 import Layout from '../Layout';
+import { styled } from '@mui/material/styles';
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Client } from '@stomp/stompjs';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import debounce from 'lodash/debounce';
 
-const mockConversations = [
-    {
-        id: 1,
-        contactName: 'John Smith',
-        avatar: null,
-        messages: [
-            {
-                id: 1,
-                text: 'Hi, I wanted to discuss the wedding photoshoot package',
-                timestamp: '2024-03-15T10:30:00',
-                sender: 'contact',
-                read: true
-            },
-            {
-                id: 2,
-                text: "Of course! I'd be happy to go through the details with you.",
-                timestamp: '2024-03-15T10:35:00',
-                sender: 'user',
-                read: true
-            }
-        ]
-    },
-    {
-        id: 2,
-        contactName: 'Sarah Johnson',
-        avatar: null,
-        messages: [
-            {
-                id: 1,
-                text: 'The product photos look amazing!',
-                timestamp: '2024-03-14T15:20:00',
-                sender: 'contact',
-                read: false
-            }
-        ]
-    },
-    {
-        id: 3,
-        contactName: 'Tech Solutions Inc.',
-        avatar: null,
-        messages: [
-            {
-                id: 1,
-                text: 'Can we schedule the corporate photoshoot for next week?',
-                timestamp: '2024-03-13T09:15:00',
-                sender: 'contact',
-                read: true
-            },
-            {
-                id: 2,
-                text: 'Yes, I have availability on Tuesday and Thursday',
-                timestamp: '2024-03-13T09:30:00',
-                sender: 'user',
-                read: true
-            }
-        ]
-    }
-];
 
 const MessageContainer = styled(Paper)(({ theme }) => ({
     height: 'calc(100vh - 200px)',
@@ -88,7 +21,6 @@ const MessageContainer = styled(Paper)(({ theme }) => ({
     flexDirection: 'column',
     borderRadius: '12px',
     overflow: 'hidden',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
 }));
 
 const MessageList = styled(Box)(({ theme }) => ({
@@ -102,13 +34,6 @@ const MessageInput = styled(Box)(({ theme }) => ({
     padding: theme.spacing(2),
     borderTop: `1px solid ${theme.palette.divider}`,
     background: 'white',
-}));
-
-const ContactListContainer = styled(Paper)(({ theme }) => ({
-    height: '100%',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
 }));
 
 const ConversationHeader = styled(Box)(({ theme }) => ({
@@ -134,241 +59,237 @@ const MessageCenter = () => {
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [newMessage, setNewMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [stompClient, setStompClient] = useState(null);
+    const [openDialog, setOpenDialog] = useState(false);
+    const [recipientEmail, setRecipientEmail] = useState('');
     const messageEndRef = useRef(null);
 
+    const token = localStorage.getItem('token');
+    const user = jwtDecode(token); // assumes token contains id, email, role
+
     useEffect(() => {
-        // Simulating API call with mock data
-        setConversations(mockConversations);
+        const client = new Client({
+            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            reconnectDelay: 5000,
+            onConnect: () => {
+                console.log('✅ Connected to WebSocket');
+                client.subscribe('/topic/messages', (message) => {
+                    const msg = JSON.parse(message.body);
+                    if (msg.receiverId === user.id || msg.senderId === user.id) {
+                        updateMessageList(msg);
+                    }
+                });
+            },
+        });
+
+        client.activate();
+        setStompClient(client);
+
+        // Fetch conversations on mount
+        const fetchConversations = async () => {
+            try {
+                const res = await axios.get(`http://localhost:8080/api/messages/conversations/${user.id}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                setConversations(res.data);
+            } catch (err) {
+                console.error("❌ Failed to fetch conversations:", err);
+            }
+        };
+
+        fetchConversations();
+
+        return () => client.deactivate();
     }, []);
 
     useEffect(() => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [selectedConversation?.messages]);
 
-    const handleSendMessage = () => {
-        if (!newMessage.trim() || !selectedConversation) return;
+    const updateMessageList = (msg) => {
+        setConversations(prev =>
+            prev.map(conv => {
+                if (conv.id === msg.senderId || conv.id === msg.receiverId) {
+                    const updatedMessages = [...(conv.messages || []), msg];
+                    return { ...conv, messages: updatedMessages };
+                }
+                return conv;
+            })
+        );
 
-        const updatedConversations = conversations.map(conv => {
-            if (conv.id === selectedConversation.id) {
-                return {
-                    ...conv,
-                    messages: [
-                        ...conv.messages,
-                        {
-                            id: conv.messages.length + 1,
-                            text: newMessage,
-                            timestamp: new Date().toISOString(),
-                            sender: 'user',
-                            read: true,
-                        },
-                    ],
-                };
-            }
-            return conv;
+        setSelectedConversation(prev => {
+            if (!prev) return prev;
+            const isInCurrent = msg.senderId === prev.id || msg.receiverId === prev.id;
+            if (!isInCurrent) return prev;
+            return { ...prev, messages: [...(prev.messages || []), msg] };
+        });
+    };
+
+
+    const handleSendMessage = () => {
+        if (!stompClient || !stompClient.connected || !newMessage.trim() || !selectedConversation) return;
+
+        const msg = {
+            senderId: user.id,
+            receiverId: selectedConversation.id,
+            content: newMessage,
+            timestamp: new Date().toISOString(),
+        };
+
+        stompClient.publish({
+            destination: '/app/chat.send',
+            body: JSON.stringify(msg),
         });
 
-        setConversations(updatedConversations);
-        setSelectedConversation(updatedConversations.find(c => c.id === selectedConversation.id));
         setNewMessage('');
     };
 
-    const handleSelectConversation = (conversation) => {
-        // Mark messages as read
-        const updatedConversations = conversations.map(conv => {
-            if (conv.id === conversation.id) {
-                return {
-                    ...conv,
-                    messages: conv.messages.map(msg => ({ ...msg, read: true })),
+
+    const fetchMessages = async (contactId) => {
+        try {
+            const res = await axios.get(`http://localhost:8080/api/messages/${user.id}/${contactId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return res.data;
+        } catch (err) {
+            console.error('❌ Failed to fetch messages:', err);
+            return [];
+        }
+    };
+
+    const handleSelectConversation = async (conversation) => {
+        const messages = await fetchMessages(conversation.id);
+        setSelectedConversation({ ...conversation, messages });
+    };
+
+    const handleNewMessageByEmail = async () => {
+        try {
+            const res = await axios.get(`http://localhost:8080/api/users/by-email/${recipientEmail}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const userData = res.data;
+            const existing = conversations.find(c => c.id === userData.id);
+            if (!existing) {
+                const newConv = {
+                    id: userData.id,
+                    contactName: `${userData.name} ${userData.surname || ''}`,
+                    messages: []
                 };
+                setConversations(prev => [...prev, newConv]);
+                setSelectedConversation(newConv);
+            } else {
+                handleSelectConversation(existing);
             }
-            return conv;
-        });
-
-        setConversations(updatedConversations);
-        setSelectedConversation(updatedConversations.find(c => c.id === conversation.id));
+        } catch (err) {
+            alert("❌ Could not find user with this email.");
+        }
+        setOpenDialog(false);
+        setRecipientEmail('');
     };
 
-    const getUnreadCount = (conversation) => {
-        return conversation.messages.filter(msg => !msg.read && msg.sender === 'contact').length;
-    };
-
-    const filteredConversations = conversations.filter(conv =>
-        conv.contactName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const getUnreadCount = (conversation) =>
+        conversation.messages?.filter(m => !m.read && m.senderId !== user.id).length || 0;
 
     return (
         <Layout>
-            <Container maxWidth="xl" sx={{ py: 3, px: 3, height: 'calc(100vh - 100px)' }}>
-                <Card sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    height: '100%',
-                    borderRadius: '16px',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                    overflow: 'hidden'
-                }}>
-                    <CardHeader 
-                        title="Messages" 
-                        sx={{ 
-                            bgcolor: '#ffffff', 
-                            borderBottom: '1px solid #eaecef',
-                            p: 2,
-                        }} 
+            <Container maxWidth={false} sx={{ py: 3, px: 3, height: 'calc(100vh - 100px)' }}>
+                <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <CardHeader
+                        title="Messages"
+                        action={
+                            <Button onClick={() => setOpenDialog(true)} variant="contained">
+                                New Message
+                            </Button>
+                        }
                     />
-                    <CardContent sx={{ p: 0, flex: 1, display: 'flex', overflow: 'hidden' }}>
-                        <Grid container sx={{ height: '100%' }}>
-                            {/* Conversations List */}
-                            <Grid item xs={12} md={4} sx={{ 
-                                height: '100%',
-                                borderRight: '1px solid #eaecef',
-                                display: 'flex',
-                                flexDirection: 'column'
-                            }}>
-                                <ContactListContainer elevation={0}>
-                                    <Box sx={{ p: 2, borderBottom: '1px solid #eaecef' }}>
+                    <CardContent sx={{ flex: 1, display: 'flex', overflow: 'hidden', px: 0 }}>
+                        <Box sx={{ display: 'flex', width: '100%', gap: 3, height: '100%' }}>
+
+                            {/* Left Panel - Sidebar */}
+                            <Box sx={{ width: '300px', flexShrink: 0 }}>
+                                <Paper sx={{ height: '100%', overflow: 'hidden' }}>
+                                    <Box sx={{ p: 2 }}>
                                         <TextField
                                             fullWidth
                                             size="small"
-                                            placeholder="Search conversations..."
+                                            placeholder="Search..."
                                             value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onChange={e => setSearchQuery(e.target.value)}
                                             InputProps={{
-                                                startAdornment: (
-                                                    <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                                                ),
-                                            }}
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '8px',
-                                                }
+                                                startAdornment: <SearchIcon sx={{ mr: 1 }} />,
                                             }}
                                         />
                                     </Box>
-                                    <List sx={{ 
-                                        flexGrow: 1, 
-                                        overflow: 'auto',
-                                        bgcolor: '#f9fafc',
-                                        p: 0 
-                                    }}>
-                                        {filteredConversations.map((conversation) => (
-                                            <ListItem
-                                                key={conversation.id}
-                                                button
-                                                selected={selectedConversation?.id === conversation.id}
-                                                onClick={() => handleSelectConversation(conversation)}
-                                                sx={{
-                                                    borderLeft: selectedConversation?.id === conversation.id 
-                                                        ? '4px solid #4a6fdc' 
-                                                        : '4px solid transparent',
-                                                    bgcolor: selectedConversation?.id === conversation.id 
-                                                        ? 'rgba(74, 111, 220, 0.08)' 
-                                                        : 'transparent',
-                                                    '&:hover': {
-                                                        bgcolor: 'rgba(0, 0, 0, 0.04)',
-                                                    },
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                            >
-                                                <ListItemAvatar>
-                                                    <Badge
-                                                        badgeContent={getUnreadCount(conversation)}
-                                                        color="error"
-                                                        overlap="circular"
-                                                    >
-                                                        <Avatar sx={{ bgcolor: '#4a6fdc' }}>
-                                                            {conversation.contactName[0]}
-                                                        </Avatar>
-                                                    </Badge>
-                                                </ListItemAvatar>
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                                            {conversation.contactName}
-                                                        </Typography>
-                                                    }
-                                                    secondary={
-                                                        <Typography 
-                                                            variant="body2" 
-                                                            sx={{ 
-                                                                color: 'text.secondary',
-                                                                whiteSpace: 'nowrap',
-                                                                overflow: 'hidden',
-                                                                textOverflow: 'ellipsis',
-                                                                maxWidth: '180px'
-                                                            }}
-                                                        >
-                                                            {conversation.messages[conversation.messages.length - 1].text}
-                                                        </Typography>
-                                                    }
-                                                />
-                                            </ListItem>
-                                        ))}
+                                    <List sx={{ overflow: 'auto', height: 'calc(100% - 64px)' }}>
+                                        {conversations
+                                            .filter(c =>
+                                                c.contactName.toLowerCase().includes(searchQuery.toLowerCase())
+                                            )
+                                            .map(c => (
+                                                <ListItem
+                                                    key={c.id}
+                                                    button
+                                                    selected={selectedConversation?.id === c.id}
+                                                    onClick={() => handleSelectConversation(c)}
+                                                >
+                                                    <ListItemAvatar>
+                                                        <Badge badgeContent={getUnreadCount(c)} color="error">
+                                                            <Avatar>{c.contactName[0]}</Avatar>
+                                                        </Badge>
+                                                    </ListItemAvatar>
+                                                    <ListItemText
+                                                        primary={c.contactName}
+                                                        secondary={c.messages?.slice(-1)[0]?.content}
+                                                    />
+                                                </ListItem>
+                                            ))}
                                     </List>
-                                </ContactListContainer>
-                            </Grid>
+                                </Paper>
+                            </Box>
 
-                            {/* Messages View */}
-                            <Grid item xs={12} md={8} sx={{ height: '100%' }}>
+                            {/* Right Panel - Chat */}
+                            <Box sx={{ flexGrow: 1 }}>
                                 <MessageContainer elevation={0}>
                                     {selectedConversation ? (
                                         <>
-                                            {/* Messages Header */}
                                             <ConversationHeader>
-                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <Avatar sx={{ mr: 2, bgcolor: '#4a6fdc' }}>
-                                                        {selectedConversation.contactName[0]}
-                                                    </Avatar>
-                                                    <Box>
-                                                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                                            {selectedConversation.contactName}
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {selectedConversation.messages.length} messages
-                                                        </Typography>
-                                                    </Box>
-                                                </Box>
+                                                <Typography variant="subtitle1" fontWeight={600}>
+                                                    {selectedConversation.contactName}
+                                                </Typography>
                                             </ConversationHeader>
-
-                                            {/* Messages Content */}
                                             <MessageList>
-                                                {selectedConversation.messages.map((message) => (
+                                                {selectedConversation.messages?.map((m, i) => (
                                                     <Box
-                                                        key={message.id}
+                                                        key={i}
                                                         sx={{
                                                             display: 'flex',
-                                                            justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-                                                            mb: 2,
+                                                            justifyContent: m.senderId === user.id ? 'flex-end' : 'flex-start',
                                                         }}
                                                     >
-                                                        <MessageBubble isUser={message.sender === 'user'}>
-                                                            <Typography sx={{ lineHeight: 1.5 }}>
-                                                                {message.text}
-                                                            </Typography>
+                                                        <MessageBubble isUser={m.senderId === user.id}>
+                                                            <Typography>{m.content}</Typography>
                                                             <Typography
                                                                 variant="caption"
-                                                                sx={{
-                                                                    display: 'block',
-                                                                    mt: 0.5,
-                                                                    textAlign: 'right',
-                                                                    color: message.sender === 'user' ? 'rgba(255,255,255,0.7)' : 'text.secondary',
-                                                                }}
+                                                                sx={{ display: 'block', mt: 0.5, opacity: 0.6 }}
                                                             >
-                                                                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                {new Date(m.timestamp).toLocaleTimeString()}
                                                             </Typography>
                                                         </MessageBubble>
                                                     </Box>
                                                 ))}
                                                 <div ref={messageEndRef} />
                                             </MessageList>
-
-                                            {/* Message Input */}
                                             <MessageInput>
                                                 <TextField
                                                     fullWidth
                                                     placeholder="Type a message..."
                                                     value={newMessage}
-                                                    onChange={(e) => setNewMessage(e.target.value)}
-                                                    onKeyPress={(e) => {
+                                                    onChange={e => setNewMessage(e.target.value)}
+                                                    onKeyPress={e => {
                                                         if (e.key === 'Enter' && !e.shiftKey) {
                                                             e.preventDefault();
                                                             handleSendMessage();
@@ -380,63 +301,47 @@ const MessageCenter = () => {
                                                                 onClick={handleSendMessage}
                                                                 disabled={!newMessage.trim()}
                                                                 color="primary"
-                                                                sx={{ 
-                                                                    bgcolor: newMessage.trim() ? 'primary.main' : 'transparent',
-                                                                    color: newMessage.trim() ? 'white' : 'inherit',
-                                                                    '&:hover': {
-                                                                        bgcolor: newMessage.trim() ? 'primary.dark' : 'rgba(0, 0, 0, 0.04)',
-                                                                    },
-                                                                }}
                                                             >
                                                                 <SendIcon />
                                                             </IconButton>
                                                         ),
                                                     }}
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            borderRadius: '24px',
-                                                            '& fieldset': {
-                                                                borderColor: '#e0e0e0',
-                                                            },
-                                                        },
-                                                    }}
                                                 />
                                             </MessageInput>
                                         </>
                                     ) : (
-                                        <Box
-                                            sx={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                height: '100%',
-                                                p: 3,
-                                                bgcolor: '#f9fafc',
-                                            }}
-                                        >
-                                            <Box
-                                                component="img"
-                                                src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png"
-                                                alt="Empty messages"
-                                                sx={{ width: 120, height: 120, opacity: 0.5, mb: 2 }}
-                                            />
-                                            <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
-                                                Select a conversation
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
-                                                Choose a contact from the list to start messaging
-                                            </Typography>
+                                        <Box sx={{ p: 3, textAlign: 'center' }}>
+                                            <Typography variant="h6">Select a conversation</Typography>
                                         </Box>
                                     )}
                                 </MessageContainer>
-                            </Grid>
-                        </Grid>
+                            </Box>
+                        </Box>
                     </CardContent>
                 </Card>
             </Container>
+
+            {/* New Message Dialog */}
+            <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+                <DialogTitle>Start New Message</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        label="Recipient Email"
+                        fullWidth
+                        value={recipientEmail}
+                        onChange={e => setRecipientEmail(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+                    <Button onClick={handleNewMessageByEmail} variant="contained">
+                        Start
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Layout>
     );
 };
 
-export default MessageCenter; 
+export default MessageCenter;

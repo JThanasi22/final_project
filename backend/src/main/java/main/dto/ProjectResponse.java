@@ -23,7 +23,7 @@ public class ProjectResponse {
         this.endDate = project.getEndDate();
         this.status = project.getStatus();
         this.type = project.getType();
-        this.clientId = project.getClientId() != null ? project.getClientId().getId() : null;
+        this.clientId = project.getClientId() != null ? project.getClientId() : null;
     }
 
     public String getId() {

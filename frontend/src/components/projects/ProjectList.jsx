@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import Layout from '../Layout';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
     TextField, MenuItem, CircularProgress, Alert
 } from '@mui/material';
-import { useLocation, useNavigate } from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import TopNavbar from '../layout/TopNavbar';
 
@@ -25,10 +25,10 @@ const ProjectList = () => {
     const [error, setError] = useState('');
     const [creating, setCreating] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    
+
     const location = useLocation();
     const navigate = useNavigate();
-    
+
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
     const isActiveRoute = (path) => location.pathname === path;
     const handleLogout = () => {
@@ -93,7 +93,7 @@ const ProjectList = () => {
     };
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
         setNewProject(prev => ({
             ...prev,
             [name]: value
@@ -123,7 +123,7 @@ const ProjectList = () => {
 
             // Refresh projects after creation
             const refreshed = await fetch('http://localhost:8080/api/projects', {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {'Authorization': `Bearer ${token}`}
             });
             setProjects(await refreshed.json());
         } catch (error) {
@@ -135,17 +135,21 @@ const ProjectList = () => {
 
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
-            case 'completed': return 'success';
-            case 'in progress': return 'warning';
-            case 'pending': return 'info';
-            default: return 'default';
+            case 'completed':
+                return 'success';
+            case 'in progress':
+                return 'warning';
+            case 'pending':
+                return 'info';
+            default:
+                return 'default';
         }
     };
 
     return (
         <Layout>
-            <Box sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+            <Box sx={{p: 3}}>
+                <Box sx={{display: 'flex', justifyContent: 'space-between', mb: 3}}>
                     <Typography variant="h5">Projects</Typography>
                     <Button variant="contained" color="primary" onClick={() => handleOpenDialog(null, 'create')}>
                         New Project
@@ -153,14 +157,14 @@ const ProjectList = () => {
                 </Box>
 
                 {loading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-                        <CircularProgress />
+                    <Box sx={{display: 'flex', justifyContent: 'center', mt: 5}}>
+                        <CircularProgress/>
                     </Box>
                 ) : error ? (
                     <Alert severity="error">{error}</Alert>
                 ) : (
-                    <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
-                        <Table sx={{ minWidth: 650 }}>
+                    <TableContainer component={Paper} sx={{maxWidth: '100%', overflowX: 'auto'}}>
+                        <Table sx={{minWidth: 650}}>
                             <TableHead>
                                 <TableRow>
                                     <TableCell>ID</TableCell>
@@ -180,11 +184,13 @@ const ProjectList = () => {
                                         <TableCell>{project.description}</TableCell>
                                         <TableCell>{project.type}</TableCell>
                                         <TableCell>
-                                            <Chip label={project.status} color={getStatusColor(project.status)} size="small" />
+                                            <Chip label={project.status} color={getStatusColor(project.status)}
+                                                  size="small"/>
                                         </TableCell>
                                         <TableCell>{project.endDate}</TableCell>
                                         <TableCell>
-                                            <Button size="small" color="primary" onClick={() => handleOpenDialog(project, 'view')}>
+                                            <Button size="small" color="primary"
+                                                    onClick={() => handleOpenDialog(project, 'view')}>
                                                 View
                                             </Button>
                                         </TableCell>
@@ -196,10 +202,11 @@ const ProjectList = () => {
                 )}
 
                 {/* View / Create Dialog */}
-                <Dialog open={dialogMode === 'view' || dialogMode === 'create'} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+                <Dialog open={dialogMode === 'view' || dialogMode === 'create'} onClose={handleCloseDialog}
+                        maxWidth="sm" fullWidth>
                     <DialogTitle>{dialogMode === 'view' ? 'Project Details' : 'Create New Project'}</DialogTitle>
                     <DialogContent>
-                        <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box sx={{pt: 2, display: 'flex', flexDirection: 'column', gap: 2}}>
                             <TextField
                                 label="Title"
                                 name="title"
@@ -249,15 +256,31 @@ const ProjectList = () => {
                                 onChange={handleInputChange}
                                 fullWidth
                                 disabled={dialogMode === 'view'}
-                                InputLabelProps={{ shrink: true }}
+                                InputLabelProps={{shrink: true}}
                             />
                             {dialogMode === 'view' && (
-                                <TextField
-                                    label="Status"
-                                    value={selectedProject?.status}
-                                    fullWidth
-                                    disabled
-                                />
+                                <>
+                                    <TextField
+                                        label="Status"
+                                        value={selectedProject?.status}
+                                        fullWidth
+                                        disabled
+                                    />
+                                    <TextField
+                                        label="Price"
+                                        value={selectedProject?.price ? `${selectedProject.price} €` : 'Not set'}
+                                        fullWidth
+                                        disabled
+                                    />
+                                    <TextField
+                                        label="Creation Date"
+                                        value={selectedProject?.creationDate
+                                            ? new Date(selectedProject.creationDate).toLocaleString()
+                                            : 'Unknown'}
+                                        fullWidth
+                                        disabled
+                                    />
+                                </>
                             )}
                         </Box>
                     </DialogContent>
@@ -270,7 +293,7 @@ const ProjectList = () => {
                                 color="primary"
                                 disabled={creating}
                             >
-                                {creating ? <CircularProgress size={24} /> : 'Create'}
+                                {creating ? <CircularProgress size={24}/> : 'Create'}
                             </Button>
                         )}
                     </DialogActions>
