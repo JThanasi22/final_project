@@ -1,6 +1,8 @@
 package main.dto;
 
 import main.model.Project;
+import java.util.List;
+import java.util.Map;
 
 public class ProjectResponse {
     private String id;
@@ -9,11 +11,21 @@ public class ProjectResponse {
     private String requirements;
     private String creationDate;
     private String endDate;
+    private String price;
     private String status;
     private String type;
-    private String clientId; // String, not DocumentReference
+    private String clientId; // converted from DocumentReference to String
+    private String userId;
+    private String projectTeamId;
+    private int state;
+    private List<String> photographers;
+    private List<String> editors;
+    private String assignedAt;
+    private List<Map<String, String>> media;
+    private List<Map<String, String>> finalMedia;
 
-    // Constructor from your Project model:
+
+    // Constructor from Project model:
     public ProjectResponse(Project project) {
         this.id = project.getId();
         this.title = project.getTitle();
@@ -21,80 +33,72 @@ public class ProjectResponse {
         this.requirements = project.getRequirements();
         this.creationDate = project.getCreationDate();
         this.endDate = project.getEndDate();
+        this.price = project.getPrice();
         this.status = project.getStatus();
         this.type = project.getType();
-        this.clientId = project.getClientId() != null ? project.getClientId() : null;
+        this.clientId = project.getClientId() != null ? project.getClientId().getId() : null;
+        this.userId = project.getUserId();
+        this.projectTeamId = project.getProjectTeamId();
+        this.state = project.getState();
+        this.photographers = project.getPhotographers();
+        this.editors = project.getEditors();
+        this.assignedAt = project.getAssignedAt();
+        this.media = project.getMedia();
+        this.finalMedia = project.getFinalMedia();
     }
 
-    public String getId() {
-        return id;
-    }
+    // Getters and setters (generated)
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public String getTitle() {
-        return title;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    public String getRequirements() { return requirements; }
+    public void setRequirements(String requirements) { this.requirements = requirements; }
 
-    public String getDescription() {
-        return description;
-    }
+    public String getCreationDate() { return creationDate; }
+    public void setCreationDate(String creationDate) { this.creationDate = creationDate; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public String getEndDate() { return endDate; }
+    public void setEndDate(String endDate) { this.endDate = endDate; }
 
-    public String getRequirements() {
-        return requirements;
-    }
+    public String getPrice() { return price; }
+    public void setPrice(String price) { this.price = price; }
 
-    public void setRequirements(String requirements) {
-        this.requirements = requirements;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public String getCreationDate() {
-        return creationDate;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public void setCreationDate(String creationDate) {
-        this.creationDate = creationDate;
-    }
+    public String getClientId() { return clientId; }
+    public void setClientId(String clientId) { this.clientId = clientId; }
 
-    public String getEndDate() {
-        return endDate;
-    }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
-    public void setEndDate(String endDate) {
-        this.endDate = endDate;
-    }
+    public String getProjectTeamId() { return projectTeamId; }
+    public void setProjectTeamId(String projectTeamId) { this.projectTeamId = projectTeamId; }
 
-    public String getStatus() {
-        return status;
-    }
+    public int getState() { return state; }
+    public void setState(int state) { this.state = state; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public List<String> getPhotographers() { return photographers; }
+    public void setPhotographers(List<String> photographers) { this.photographers = photographers; }
 
-    public String getType() {
-        return type;
-    }
+    public List<String> getEditors() { return editors; }
+    public void setEditors(List<String> editors) { this.editors = editors; }
 
-    public void setType(String type) {
-        this.type = type;
-    }
+    public String getAssignedAt() { return assignedAt; }
+    public void setAssignedAt(String assignedAt) { this.assignedAt = assignedAt; }
+    public List<Map<String, String>> getMedia() { return media; }
+    public void setMedia(List<Map<String, String>> media) { this.media = media; }
 
-    public String getClientId() {
-        return clientId;
-    }
+    public List<Map<String, String>> getFinalMedia() { return finalMedia; }
+    public void setFinalMedia(List<Map<String, String>> finalMedia) { this.finalMedia = finalMedia; }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
 }

@@ -62,6 +62,8 @@ function Login() {
                     navigate('/Admindashboard');
                 } else if (role === 'c') {
                     navigate('/dashboard');
+                } else if (role === 'm') {
+                    navigate('/manager_dashboard');
                 } else if (role === 'p') {
                     navigate('/photograph_dashboard');
                 } else if (role === 's') {

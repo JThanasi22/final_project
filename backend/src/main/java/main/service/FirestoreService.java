@@ -4,9 +4,11 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
+import main.dto.ProjectResponse;
 import main.model.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,8 +20,6 @@ import java.util.UUID;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.text.SimpleDateFormat;
-import java.util.stream.Collectors;
 
 @Service
 public class FirestoreService {
@@ -233,6 +233,295 @@ public class FirestoreService {
 
     // ----------------- Project Operations -----------------
 
+    public List<Project> getAllPendingProjects() throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("pending_projects").get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        return projects;
+    }
+
+    public boolean deletePendingProject(String projectId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = db.collection("pending_projects").document(projectId);
+        DocumentSnapshot doc = docRef.get().get();
+
+        if (doc.exists()) {
+            docRef.delete().get();
+            System.out.println("✅ Deleted pending project: " + projectId);
+            return true;
+        } else {
+            System.out.println("❌ Pending project not found: " + projectId);
+            return false;
+        }
+    }
+
+    public boolean movePendingProjectToActive(String projectId, List<String> photographers, List<String> editors, String price) {
+        try {
+            DocumentReference pendingRef = db.collection("pending_projects").document(projectId);
+            DocumentSnapshot pendingSnapshot = pendingRef.get().get();
+
+            if (!pendingSnapshot.exists()) {
+                System.out.println("❌ Pending project not found: " + projectId);
+                return false;
+            }
+
+            // Copy data
+            Map<String, Object> projectData = new HashMap<>(pendingSnapshot.getData());
+            projectData.put("photographers", photographers);
+            projectData.put("editors", editors);
+            projectData.put("price", price);
+            projectData.put("status", "active");
+            projectData.put("assignedAt", Instant.now().toString());
+            projectData.put("state", 1);  // state 1 → photographer phase
+
+            // Save to active_projects
+            DocumentReference activeRef = db.collection("active_projects").document(projectId);
+            activeRef.set(projectData).get();
+
+            // Delete from pending_projects
+            pendingRef.delete().get();
+
+            System.out.println("✅ Project moved to active_projects: " + projectId);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<Project> getAllActiveProjects() throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("active_projects").get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        System.out.println("✅ Retrieved " + projects.size() + " active projects");
+        return projects;
+    }
+
+    public List<ProjectResponse> getActiveProjectsForUser(String userId, String role) throws ExecutionException, InterruptedException {
+        List<ProjectResponse> userProjects = new ArrayList<>();
+
+        ApiFuture<QuerySnapshot> querySnapshot = db.collection("active_projects").get();
+        List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+
+        for (QueryDocumentSnapshot doc : documents) {
+            Project project = doc.toObject(Project.class);
+
+            boolean isPhotographer = role.equals("p") && project.getPhotographers() != null && project.getPhotographers().contains(userId);
+            boolean isEditor = role.equals("e") && project.getEditors() != null && project.getEditors().contains(userId);
+
+            if (isPhotographer || isEditor) {
+                ProjectResponse response = new ProjectResponse(project);
+                response.setId(project.getId());
+                response.setTitle(project.getTitle());
+                response.setDescription(project.getDescription());
+                response.setRequirements(project.getRequirements());
+                response.setCreationDate(project.getCreationDate());
+                response.setEndDate(project.getEndDate());
+                response.setPrice(project.getPrice());
+                response.setStatus(project.getStatus());
+                response.setType(project.getType());
+                response.setUserId(project.getUserId());
+                response.setProjectTeamId(project.getProjectTeamId());
+                response.setState(project.getState());
+                response.setPhotographers(project.getPhotographers());
+                response.setEditors(project.getEditors());
+                response.setAssignedAt(project.getAssignedAt());
+
+                userProjects.add(response);
+            }
+        }
+
+        return userProjects;
+    }
+
+    public List<Project> getAllFinishedProjects() throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("finished_projects").get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        System.out.println("✅ Retrieved " + projects.size() + " finished projects");
+        return projects;
+    }
+
+    public List<ProjectResponse> getFinishedProjectsForUser(String userId, String role) throws ExecutionException, InterruptedException {
+        List<ProjectResponse> userProjects = new ArrayList<>();
+
+        ApiFuture<QuerySnapshot> querySnapshot = db.collection("finished_projects").get();
+        List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+
+        for (QueryDocumentSnapshot doc : documents) {
+            Project project = doc.toObject(Project.class);
+
+            boolean isPhotographer = role.equals("p") && project.getPhotographers() != null && project.getPhotographers().contains(userId);
+            boolean isEditor = role.equals("e") && project.getEditors() != null && project.getEditors().contains(userId);
+
+            if (isPhotographer || isEditor) {
+                ProjectResponse response = new ProjectResponse(project);
+                response.setId(project.getId());
+                response.setTitle(project.getTitle());
+                response.setDescription(project.getDescription());
+                response.setRequirements(project.getRequirements());
+                response.setCreationDate(project.getCreationDate());
+                response.setEndDate(project.getEndDate());
+                response.setPrice(project.getPrice());
+                response.setStatus(project.getStatus());
+                response.setType(project.getType());
+                response.setUserId(project.getUserId());
+                response.setProjectTeamId(project.getProjectTeamId());
+                response.setState(project.getState());
+                response.setPhotographers(project.getPhotographers());
+                response.setEditors(project.getEditors());
+                response.setAssignedAt(project.getAssignedAt());
+
+                userProjects.add(response);
+            }
+        }
+
+        return userProjects;
+    }
+
+    public void attachMediaToProject(String projectId, List<MultipartFile> files) throws Exception {
+        DocumentReference projectRef = db.collection("active_projects").document(projectId);
+        DocumentSnapshot projectSnap = projectRef.get().get();
+
+        if (!projectSnap.exists()) {
+            throw new Exception("Project not found");
+        }
+
+        List<Map<String, String>> mediaList = new ArrayList<>();
+        for (MultipartFile file : files) {
+            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+
+            Map<String, String> mediaItem = new HashMap<>();
+            mediaItem.put("fileName", file.getOriginalFilename());
+            mediaItem.put("content", base64);
+
+            mediaList.add(mediaItem);
+        }
+
+        // Store under a 'media' field inside the project
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("media", mediaList);
+
+        projectRef.update(updates).get();
+        System.out.println("✅ Attached media to project: " + projectId);
+    }
+
+    public void attachFinalMediaToProject(String projectId, List<MultipartFile> files) throws Exception {
+        DocumentReference projectRef = db.collection("active_projects").document(projectId);
+        DocumentSnapshot projectSnap = projectRef.get().get();
+
+        if (!projectSnap.exists()) {
+            throw new Exception("Project not found");
+        }
+
+        List<Map<String, String>> finalMediaList = new ArrayList<>();
+        for (MultipartFile file : files) {
+            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+
+            Map<String, String> mediaItem = new HashMap<>();
+            mediaItem.put("fileName", file.getOriginalFilename());
+            mediaItem.put("content", base64);
+
+            finalMediaList.add(mediaItem);
+        }
+
+        // Store under a 'finalMedia' field inside the project
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("finalMedia", finalMediaList);
+
+        projectRef.update(updates).get();
+        System.out.println("✅ Attached final media to project: " + projectId);
+    }
+
+    public Firestore getDb() {
+        return db;
+    }
+
+    public boolean moveActiveProjectToFinished(String projectId) {
+        try {
+            DocumentReference activeRef = db.collection("active_projects").document(projectId);
+            DocumentSnapshot activeSnapshot = activeRef.get().get();
+
+            if (!activeSnapshot.exists()) {
+                System.out.println("❌ Active project not found: " + projectId);
+                return false;
+            }
+
+            Map<String, Object> activeData = activeSnapshot.getData();
+
+            if (activeData == null || !activeData.containsKey("finalMedia")) {
+                System.out.println("❌ No final media found for project: " + projectId);
+                return false;
+            }
+
+            Map<String, Object> finishedData = new HashMap<>();
+            finishedData.put("id", projectId);
+            finishedData.put("title", activeData.get("title"));
+            finishedData.put("description", activeData.get("description"));
+            finishedData.put("requirements", activeData.get("requirements"));
+            finishedData.put("creationDate", activeData.get("creationDate"));
+            finishedData.put("endDate", activeData.get("endDate"));
+            finishedData.put("price", activeData.get("price"));
+            finishedData.put("status", "finished");
+            finishedData.put("type", activeData.get("type"));
+            finishedData.put("userId", activeData.get("userId"));
+            finishedData.put("projectTeamId", activeData.get("projectTeamId"));
+            finishedData.put("state", 3); // mark as finished
+            finishedData.put("photographers", activeData.get("photographers"));
+            finishedData.put("editors", activeData.get("editors"));
+            finishedData.put("assignedAt", activeData.get("assignedAt"));
+            finishedData.put("finalMedia", activeData.get("finalMedia"));
+
+            // Save to finished_projects
+            DocumentReference finishedRef = db.collection("finished_projects").document(projectId);
+            finishedRef.set(finishedData).get();
+
+            // Delete from active_projects
+            activeRef.delete().get();
+
+            System.out.println("✅ Moved project " + projectId + " to finished_projects.");
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void revertProjectToPhotographing(String projectId) throws Exception {
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference ref = db.collection("active_projects").document(projectId);
+        ref.update("state", 1).get();
+    }
+
+    public List<Map<String, String>> getMediaForProject(String projectId) throws Exception {
+        DocumentSnapshot doc = db.collection("active_projects").document(projectId).get().get();
+        if (!doc.exists() || !doc.contains("media")) {
+            throw new Exception("No media found for project " + projectId);
+        }
+
+        return (List<Map<String, String>>) doc.get("media");
+    }
+
     public List<Project> getAllProjects() throws ExecutionException, InterruptedException {
         List<Project> projects = new ArrayList<>();
         QuerySnapshot snapshot = db.collection(PROJECT_COLLECTION).get().get();
@@ -280,15 +569,13 @@ public class FirestoreService {
 
     public String createProject(Project project, String clientId) throws ExecutionException, InterruptedException {
         project.setStatus("pending");
-        project.setClientId(clientId);
+        project.setClientId(db.collection("users").document(clientId)); // Convert to DocumentReference
         project.setCreationDate(Instant.now().toString());
 
-        DocumentReference docRef = db.collection(PROJECT_COLLECTION).document();
+        DocumentReference docRef = db.collection("pending_projects").document();
         project.setId(docRef.getId());
 
         docRef.set(project).get();
-        System.out.println("✅ Created project with ID: " + project.getId());
-
         return project.getId();
     }
 
@@ -509,7 +796,7 @@ public class FirestoreService {
             // If no ID is provided, create a new invoice number with pattern INV-YYYY-XXXX
             if (invoice.getId() == null || invoice.getId().isEmpty()) {
                 String invoiceNumber = "INV-" + new SimpleDateFormat("yyyy").format(new Date()) + "-"
-                    + String.format("%04d", (int)(Math.random() * 10000));
+                        + String.format("%04d", (int)(Math.random() * 10000));
                 invoice.setId(invoiceNumber);
             }
 

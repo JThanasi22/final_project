@@ -10,6 +10,9 @@ import FeedbackList from '../components/feedback/FeedbackList';
 import NotificationList from '../components/notifications/NotificationList';
 import UserSettings from '../UserSettings';
 import AdminPanel from '../components/admin/AdminPanel';
+import PhotographerDashboard from '../PhotographerDashboard';
+import ManagerDashboard from '../ManagerDashboard.jsx';
+import EditorDashboard from "../EditorDashboard.jsx";
 
 const AppRoutes = () => {
     return (
@@ -25,6 +28,9 @@ const AppRoutes = () => {
                 <Route path="/notifications" element={<NotificationList />} />
                 <Route path="/settings" element={<UserSettings />} />
                 <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/photograph_dashboard" element={<PhotographerDashboard />} />
+                <Route path="/manager_dashboard" element={<ManagerDashboard />} />
+                <Route path="/editor_dashboard" element={<EditorDashboard />} />
         </Routes>
     );
 };

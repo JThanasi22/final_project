@@ -26,41 +26,36 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        // Order matters - most specific first
+                        // Allow preflight OPTIONS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // WebSocket endpoints
                         .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
 
                         // Public portfolio access
-                        .requestMatchers(HttpMethod.GET, "/api/portfolios/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/portfolios/**").permitAll()
-                        .requestMatchers(HttpMethod.PUT, "/api/portfolios/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/portfolios/**").permitAll()
+                        .requestMatchers("/api/portfolios/**").permitAll()
 
                         // File endpoints
                         .requestMatchers("/api/files/**").permitAll()
 
                         // Auth and password reset
-                        .requestMatchers("/api/users/signup").permitAll()
-                        .requestMatchers("/api/users/login").permitAll()
-                        .requestMatchers("/api/users/request-reset").permitAll()
-                        .requestMatchers("/api/users/verify-reset-code").permitAll()
-                        .requestMatchers("/api/users/reset-password").permitAll()
+                        .requestMatchers("/api/users/signup", "/api/users/login",
+                                "/api/users/request-reset", "/api/users/verify-reset-code",
+                                "/api/users/reset-password").permitAll()
 
-                        // ✅ Allow email lookup only for authenticated users
-                        .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated()
+                        // Active project media download (✅ add permission here)
+                        .requestMatchers(HttpMethod.GET, "/api/active_projects/download_media").authenticated()
+
+                        // Active projects finish endpoint (✅ add permission here)
+                        .requestMatchers(HttpMethod.POST, "/api/finished_projects").authenticated()
 
                         // Authenticated user info
-                        .requestMatchers("/api/users/me").authenticated()
-                        .requestMatchers("/api/users/update").authenticated()
+                        .requestMatchers("/api/users/me", "/api/users/update").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated()
 
-                        // Projects
-                        .requestMatchers("/api/projects", "/api/projects/**").authenticated()
-
-                        // Messages
-                        .requestMatchers(HttpMethod.GET, "/api/messages/conversations/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/messages/**").authenticated()
+                        // Projects and messages
+                        .requestMatchers("/api/projects/**").authenticated()
+                        .requestMatchers("/api/messages/**").authenticated()
 
                         // Catch-all
                         .anyRequest().authenticated()
@@ -73,10 +68,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // use patterns instead of "*"
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // React dev origin
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // now allowed with origin patterns
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
