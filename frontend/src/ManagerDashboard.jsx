@@ -168,13 +168,15 @@ const ManagerDashboard = () => {
                         <p><strong>Price:</strong> ${selectedProject.price}</p>
                         <p><strong>Start Date:</strong> {selectedProject.creationDate}</p>
                         <p><strong>End Date:</strong> {selectedProject.endDate}</p>
-                        <div className="modal-actions">
-                            <button className="accept-btn" onClick={() => {
-                                setSelectedProject(null);
-                                setSelectedProjectForAssign(selectedProject);
-                            }}>Accept</button>
-                            <button className="decline-btn" onClick={() => handleDecline(selectedProject.id)}>Decline</button>
-                        </div>
+                        {pendingProjects.some(p => p.id === selectedProject.id) && (
+                            <div className="modal-actions">
+                                <button className="accept-btn" onClick={() => {
+                                    setSelectedProject(null);
+                                    setSelectedProjectForAssign(selectedProject);
+                                }}>Accept</button>
+                                <button className="decline-btn" onClick={() => handleDecline(selectedProject.id)}>Decline</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
