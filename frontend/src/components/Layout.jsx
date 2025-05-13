@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { CSSTransition } from 'react-transition-group';
 import PersonIcon from '@mui/icons-material/Person';
-import Sidebar from './Sidebar';
-import '../dash.css';
-
-// Import icons
+import Sidebar from './layout/Sidebar';
+//import "../../dash.css";
 import BellIcon from '../icons/bell.png';
 import MessengerIcon from '../icons/messenger.png';
 import CaretIcon from '../icons/caret.png';
