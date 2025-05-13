@@ -22,17 +22,27 @@ public class TaskController {
 
     // Get all tasks (admin only)
     @GetMapping("/all")
-    public ResponseEntity<?> getAllTasks(@RequestHeader("Authorization") String authHeader) 
+    public ResponseEntity<?> getAllTasks(@RequestHeader("Authorization") String authHeader)
             throws ExecutionException, InterruptedException {
-        
-        if (!isAdmin(authHeader)) {
+
+        if (!isManagerOrAdmin(authHeader)) {
             return ResponseEntity.status(403).body("Access denied");
         }
-        
+
         List<Task> tasks = firestoreService.getAllTasks();
         return ResponseEntity.ok(tasks);
     }
-    
+
+    private boolean isManagerOrAdmin(String authHeader) throws ExecutionException, InterruptedException {
+        String email = getUserEmailFromToken(authHeader);
+        if (email == null) {
+            return false;
+        }
+
+        User user = firestoreService.getUserByEmail(email);
+        return user != null && ("a".equals(user.getRole()) || "m".equals(user.getRole()));
+    }
+
     // Get tasks for the current user
     @GetMapping
     public ResponseEntity<?> getUserTasks(@RequestHeader("Authorization") String authHeader) 
