@@ -399,6 +399,70 @@ public class FirestoreService {
         return userProjects;
     }
 
+    public List<Project> getProjectsByUserFromCollection(String collectionName, String userId) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        CollectionReference ref = db.collection(collectionName);
+        Query query = ref.whereEqualTo("clientId", db.collection("users").document(userId));
+        QuerySnapshot snapshot = query.get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        return projects;
+    }
+
+    public List<Project> getPendingProjectsForClient(String clientId) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("pending_projects")
+                .whereEqualTo("clientId", db.collection("users").document(clientId))
+                .get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        return projects;
+    }
+
+    public List<Project> getActiveProjectsForClient(String clientId) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("active_projects")
+                .whereEqualTo("clientId", db.collection("users").document(clientId))
+                .get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        return projects;
+    }
+
+    public List<Project> getFinishedProjectsForClient(String clientId) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("finished_projects")
+                .whereEqualTo("clientId", db.collection("users").document(clientId))
+                .get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        return projects;
+    }
+
     public void attachMediaToProject(String projectId, List<MultipartFile> files) throws Exception {
         DocumentReference projectRef = db.collection("active_projects").document(projectId);
         DocumentSnapshot projectSnap = projectRef.get().get();
@@ -485,12 +549,14 @@ public class FirestoreService {
             finishedData.put("status", "finished");
             finishedData.put("type", activeData.get("type"));
             finishedData.put("userId", activeData.get("userId"));
+            finishedData.put("clientId", activeData.get("clientId"));
             finishedData.put("projectTeamId", activeData.get("projectTeamId"));
-            finishedData.put("state", 3); // mark as finished
+            finishedData.put("state", 3);
             finishedData.put("photographers", activeData.get("photographers"));
             finishedData.put("editors", activeData.get("editors"));
             finishedData.put("assignedAt", activeData.get("assignedAt"));
             finishedData.put("finalMedia", activeData.get("finalMedia"));
+
 
             // Save to finished_projects
             DocumentReference finishedRef = db.collection("finished_projects").document(projectId);

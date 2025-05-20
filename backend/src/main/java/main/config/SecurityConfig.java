@@ -55,6 +55,7 @@ public class SecurityConfig {
 
                         // Projects and messages
                         .requestMatchers("/api/projects/**").authenticated()
+                        .requestMatchers("/api/client-projects/**").authenticated()
                         .requestMatchers("/api/messages/**").authenticated()
 
                         // Catch-all

@@ -753,6 +753,7 @@
 
 .accept-btn:hover {
   background-color: #0069d9;
+  color: white; /* keep text white for contrast */
 }
 .dashboard-puzzle {
   display: flex;
