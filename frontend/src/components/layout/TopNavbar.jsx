@@ -1,25 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
 import BellIcon from '../../icons/bell.png';
 import MessengerIcon from '../../icons/messenger.png';
 import CogIcon from '../../icons/cog.png';
 import '../../dash.css';
+import { jwtDecode } from 'jwt-decode';
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Client } from '@stomp/stompjs';
 
 // ----------------- ToggleNavbar -----------------
 export function ToggleNavbar({ children }) {
     const [showNavItems, setShowNavItems] = useState(false);
     const containerRef = useRef(null);
-
-    const navigate = useNavigate();
-
-    const isActiveRoute = (path) => {
-        return window.location.pathname === path;
-    };
-
-    const handleNavigation = (path) => {
-        navigate(path);
-    };
 
     return (
         <div className="toggle-navbar" ref={containerRef}>
@@ -127,6 +120,45 @@ export function DropdownMenu({ onLogout }) {
 // ----------------- TopNavbar Main -----------------
 const TopNavbar = ({ toggleSidebar, handleLogout }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+    const userId = useRef(null);
+
+    // Get logged in user ID from JWT
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            const decoded = jwtDecode(token);
+            userId.current = decoded.sub || decoded.userId || decoded.email;
+        }
+    }, []);
+
+    // WebSocket listener
+    useEffect(() => {
+        const socket = new SockJS('http://localhost:8080/ws');
+        const client = new Client({
+            webSocketFactory: () => socket,
+            onConnect: () => {
+                client.subscribe('/topic/messages', (message) => {
+                    const msg = JSON.parse(message.body);
+                    if (msg.receiverId === userId.current) {
+                        setHasUnreadMessages(true);
+                    }
+                });
+            },
+            debug: () => {},
+        });
+
+        client.activate();
+        return () => client.deactivate();
+    }, []);
+
+    // Reset unread when user navigates to /messages
+    useEffect(() => {
+        if (location.pathname.startsWith('/messages')) {
+            setHasUnreadMessages(false);
+        }
+    }, [location.pathname]);
 
     return (
         <div className="top-navbar">
@@ -144,7 +176,26 @@ const TopNavbar = ({ toggleSidebar, handleLogout }) => {
                 <NavItem icon={<img src={BellIcon} alt="Bell" style={{ width: 20 }} />}>
                     Notifications
                 </NavItem>
-                <NavItem icon={<img src={MessengerIcon} alt="Messenger" style={{ width: 20 }} />}>
+                <NavItem
+                    icon={
+                        <div style={{ position: 'relative' }}>
+                            <img src={MessengerIcon} alt="Messenger" style={{ width: 20 }} />
+                            {hasUnreadMessages && (
+                                <span
+                                    style={{
+                                        position: 'absolute',
+                                        top: -2,
+                                        right: -2,
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: '50%',
+                                        backgroundColor: 'red',
+                                    }}
+                                />
+                            )}
+                        </div>
+                    }
+                >
                     Messages
                 </NavItem>
                 <NavItem icon={<span>⋮</span>}>
