@@ -240,6 +240,7 @@ public class FirestoreService {
         for (DocumentSnapshot doc : snapshot.getDocuments()) {
             Project project = doc.toObject(Project.class);
             if (project != null) {
+                project.setId(doc.getId()); // ✅ THIS LINE FIXES ID
                 projects.add(project);
             }
         }
@@ -302,8 +303,10 @@ public class FirestoreService {
         for (DocumentSnapshot doc : snapshot.getDocuments()) {
             Project project = doc.toObject(Project.class);
             if (project != null) {
+                project.setId(doc.getId()); // ✅ THIS LINE FIXES ID
                 projects.add(project);
             }
+
         }
 
         System.out.println("✅ Retrieved " + projects.size() + " active projects");
@@ -354,8 +357,10 @@ public class FirestoreService {
         for (DocumentSnapshot doc : snapshot.getDocuments()) {
             Project project = doc.toObject(Project.class);
             if (project != null) {
+                project.setId(doc.getId()); // ✅ THIS LINE FIXES ID
                 projects.add(project);
             }
+
         }
 
         System.out.println("✅ Retrieved " + projects.size() + " finished projects");
@@ -517,6 +522,15 @@ public class FirestoreService {
         System.out.println("✅ Attached final media to project: " + projectId);
     }
 
+    public List<Map<String, String>> getFinalMediaForProject(String projectId) throws Exception {
+        DocumentSnapshot doc = db.collection("finished_projects").document(projectId).get().get();
+        if (!doc.exists() || !doc.contains("finalMedia")) {
+            throw new Exception("No final media found for project " + projectId);
+        }
+
+        return (List<Map<String, String>>) doc.get("finalMedia");
+    }
+
     public Firestore getDb() {
         return db;
     }
@@ -633,7 +647,7 @@ public class FirestoreService {
         return null;
     }
 
-    public String createProject(Project project, String clientId) throws ExecutionException, InterruptedException {
+    public void createProject(Project project, String clientId) throws ExecutionException, InterruptedException {
         project.setStatus("pending");
         project.setClientId(db.collection("users").document(clientId)); // Convert to DocumentReference
         project.setCreationDate(Instant.now().toString());
@@ -642,7 +656,6 @@ public class FirestoreService {
         project.setId(docRef.getId());
 
         docRef.set(project).get();
-        return project.getId();
     }
 
     public boolean updateProject(Project project) throws ExecutionException, InterruptedException {

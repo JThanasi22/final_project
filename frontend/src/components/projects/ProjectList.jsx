@@ -34,41 +34,43 @@ const ProjectList = () => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        const fetchAllProjects = async () => {
-            setLoading(true);
-            const token = localStorage.getItem('token');
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
-
-            try {
-                const [pendingRes, activeRes, finishedRes] = await Promise.all([
-                    fetch('http://localhost:8080/api/client-projects/pending', { headers }),
-                    fetch('http://localhost:8080/api/client-projects/active', { headers }),
-                    fetch('http://localhost:8080/api/client-projects/finished', { headers })
-                ]);
-
-                if (!pendingRes.ok || !activeRes.ok || !finishedRes.ok) {
-                    throw new Error('Failed to fetch projects.');
-                }
-
-                const pending = await pendingRes.json();
-                const active = await activeRes.json();
-                const finished = await finishedRes.json();
-
-                const all = [...pending, ...active, ...finished];
-                all.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-                setProjects(all);
-            } catch (err) {
-                console.error(err);
-                setError('Failed to load projects.');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchAllProjects();
     }, []);
+
+    const fetchAllProjects = async () => {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
+        try {
+            const [pendingRes, activeRes, finishedRes] = await Promise.all([
+                fetch('http://localhost:8080/api/client-projects/pending', { headers }),
+                fetch('http://localhost:8080/api/client-projects/active', { headers }),
+                fetch('http://localhost:8080/api/client-projects/finished', { headers })
+            ]);
+
+            if (!pendingRes.ok || !activeRes.ok || !finishedRes.ok) {
+                throw new Error('Failed to fetch projects.');
+            }
+
+            const pending = await pendingRes.json();
+            const active = await activeRes.json();
+            const finished = await finishedRes.json();
+
+            const all = [...pending, ...active, ...finished];
+            all.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+            setProjects(all);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to load projects.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     const getStatusLabel = (project) => {
         if (project.status === 'finished') return 'Finished';
@@ -126,11 +128,7 @@ const ProjectList = () => {
             });
             if (!response.ok) throw new Error('Failed to create project');
 
-            const updated = await fetch('http://localhost:8080/api/client-projects/pending', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await updated.json();
-            setProjects(prev => [...prev, ...data]);
+            await fetchAllProjects();
             handleCloseDialog();
         } catch (err) {
             setError(err.message);
