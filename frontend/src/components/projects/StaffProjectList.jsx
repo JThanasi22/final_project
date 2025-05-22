@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import '../../dash.css';
 
-const ProjectList = () => {
+const StaffProjectList = () => {
     const [projects, setProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,9 +47,9 @@ const ProjectList = () => {
 
         try {
             const [pendingRes, activeRes, finishedRes] = await Promise.all([
-                fetch('http://localhost:8080/api/client-projects/pending', { headers }),
-                fetch('http://localhost:8080/api/client-projects/active', { headers }),
-                fetch('http://localhost:8080/api/client-projects/finished', { headers })
+                fetch('http://localhost:8080/api/staff-projects/pending', { headers }),
+                fetch('http://localhost:8080/api/staff-projects/active', { headers }),
+                fetch('http://localhost:8080/api/staff-projects/finished', { headers })
             ]);
 
             if (!pendingRes.ok || !activeRes.ok || !finishedRes.ok) {
@@ -74,8 +74,7 @@ const ProjectList = () => {
 
     const getStatusLabel = (project) => {
         if (project.status === 'finished') return 'Finished';
-        if (project.status === 'pending' && project.state === -1) return 'Pending';
-        if (project.status === 'pending' && project.state === 0) return 'Awaiting Payment';
+        if (project.state === 0) return 'Awaiting Payment';
         if (project.state === 1) return 'Photographing';
         if (project.state === 2) return 'Editing';
         return 'Pending';
@@ -117,24 +116,7 @@ const ProjectList = () => {
     };
 
     const handleCreateProject = async () => {
-        setError(''); // Clear any previous error
-
-        // ✅ Validate end date
-        const today = new Date();
-        const endDate = new Date(newProject.endDate);
-
-        if (!newProject.endDate) {
-            setError("Please select an end date.");
-            return;
-        }
-
-        if (endDate < today.setHours(0, 0, 0, 0)) {
-            setError("End date must be in the future.");
-            return;
-        }
-
         setCreating(true);
-
         try {
             const token = localStorage.getItem('token');
             const response = await fetch('http://localhost:8080/api/projects', {
@@ -209,11 +191,6 @@ const ProjectList = () => {
                     <DialogTitle>
                         {dialogMode === 'view' ? 'Project Details' : 'Create New Project'}
                     </DialogTitle>
-                    {error && (
-                        <Box sx={{ px: 3, pt: 2 }}>
-                            <Alert severity="error">{error}</Alert>
-                        </Box>
-                    )}
                     <DialogContent>
                         <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField
@@ -290,4 +267,4 @@ const ProjectList = () => {
     );
 };
 
-export default ProjectList;
+export default StaffProjectList;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Paper,
@@ -15,31 +15,62 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import Layout from '../Layout';
+import axios from 'axios';
 
 const NotificationList = () => {
-    const [notifications] = useState([
-        {
-            id: 1,
-            type: 'Project Update',
-            message: 'Wedding photoshoot project has been updated',
-            date: '2024-03-15',
-            status: 'unread'
-        },
-        {
-            id: 2,
-            type: 'New Comment',
-            message: 'Client left a comment on Corporate Event photos',
-            date: '2024-03-14',
-            status: 'read'
-        },
-        {
-            id: 3,
-            type: 'Deadline',
-            message: 'Product photoshoot deadline approaching',
-            date: '2024-03-13',
-            status: 'unread'
+    const [notifications, setNotifications] = useState([]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get('/api/notifications', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                // ✅ Sort by timestamp descending
+                const sorted = res.data.sort(
+                    (a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)
+                );
+
+                setNotifications(sorted);
+            } catch (error) {
+                console.error("Error fetching notifications:", error);
+            }
+        };
+
+        fetchNotifications();
+    }, []);
+
+    const token = localStorage.getItem('token');
+
+    const markAsRead = async (id) => {
+        try {
+            await axios.put(`/api/notifications/${id}/read`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, status: 'read' } : n)
+            );
+        } catch (err) {
+            console.error("Failed to mark as read", err);
         }
-    ]);
+    };
+
+    const deleteNotification = async (id) => {
+        try {
+            await axios.delete(`/api/notifications/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        } catch (err) {
+            console.error("Failed to delete notification", err);
+        }
+    };
+
+    const openPayment = (url) => {
+        window.open(url, "_blank");
+    };
 
     return (
         <Layout>
@@ -103,8 +134,16 @@ const NotificationList = () => {
                                                 size="small"
                                             />
                                         </TableCell>
-                                        <TableCell>{notification.message}</TableCell>
-                                        <TableCell>{notification.date}</TableCell>
+                                        <TableCell>
+                                            <Typography title={notification.message} noWrap>
+                                                {notification.message}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                            {notification.timestamp?.seconds
+                                                ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
+                                                : "N/A"}
+                                        </TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={notification.status}
@@ -115,11 +154,24 @@ const NotificationList = () => {
                                         <TableCell align="right">
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                                                 {notification.status === 'unread' && (
-                                                    <IconButton size="small" color="primary">
+                                                    <IconButton size="small" color="primary" onClick={() => markAsRead(notification.id)}>
                                                         <MarkEmailReadIcon />
                                                     </IconButton>
                                                 )}
-                                                <IconButton size="small" color="error">
+                                                {notification.type === 'payment_request' && (
+                                                    <Chip
+                                                        label="Pay Now"
+                                                        color="success"
+                                                        onClick={async () => {
+                                                            await markAsRead(notification.id);
+                                                            openPayment(notification.paymentUrl);
+                                                        }}
+                                                        size="small"
+                                                        sx={{ cursor: 'pointer' }}
+                                                    />
+                                                )}
+
+                                                <IconButton size="small" color="error" onClick={() => deleteNotification(notification.id)}>
                                                     <DeleteIcon />
                                                 </IconButton>
                                             </Box>
@@ -135,4 +187,4 @@ const NotificationList = () => {
     );
 };
 
-export default NotificationList; 
+export default NotificationList;

@@ -16,7 +16,7 @@ public class Project {
     private String status;
     private String type;
     private DocumentReference clientId;
-    private String userId;
+    private String managerId;
     private String projectTeamId;
     private int state;
     private List<String> photographers;
@@ -41,7 +41,7 @@ public class Project {
         this.status = status;
         this.type = type;
         this.clientId = clientId;
-        this.userId = null;
+        this.managerId = null;
         this.projectTeamId = null;
         this.state = 0;
     }
@@ -126,12 +126,12 @@ public class Project {
         this.clientId = clientId;
     }
 
-    public String getUserId () {
-        return userId;
+    public String getmanagerId () {
+        return managerId;
     }
 
-    public void setUserId (String userId){
-        this.userId = userId;
+    public void setmanagerId (String userId){
+        this.managerId = userId;
     }
     public String getProjectTeamId() {
         return projectTeamId;

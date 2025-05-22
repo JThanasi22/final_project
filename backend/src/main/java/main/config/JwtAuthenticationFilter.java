@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 requestPath.startsWith("/api/portfolios") ||
                         requestPath.startsWith("/api/files") ||
                         requestPath.equals("/api/users/signup") ||
-                        requestPath.equals("/api/users/loginr") ||
+                        requestPath.equals("/api/users/login") ||
                         requestPath.equals("/api/users/request-reset") ||
                         requestPath.equals("/api/users/verify-reset-code") ||
                         requestPath.equals("/api/users/reset-password") ||

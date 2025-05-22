@@ -37,7 +37,7 @@ public class ProjectResponse {
         this.status = project.getStatus();
         this.type = project.getType();
         this.clientId = project.getClientId() != null ? project.getClientId().getId() : null;
-        this.userId = project.getUserId();
+        this.userId = project.getmanagerId();
         this.projectTeamId = project.getProjectTeamId();
         this.state = project.getState();
         this.photographers = project.getPhotographers();

@@ -7,6 +7,7 @@ public class AssignmentRequest {
     private List<String> photographers;
     private List<String> editors;
     private String price;
+    private String managerId;
 
     public String getProjectId() {
         return projectId;
@@ -38,5 +39,11 @@ public class AssignmentRequest {
 
     public void setPrice(String price) {
         this.price = price;
+    }
+    public String getManagerId() {
+        return managerId;
+    }
+    public void setManagerId(String userId) {
+        this.managerId = userId;
     }
 }

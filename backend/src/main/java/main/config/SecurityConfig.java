@@ -26,39 +26,28 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        // Allow preflight OPTIONS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // WebSocket endpoints
                         .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
-
-                        // Public portfolio access
                         .requestMatchers("/api/portfolios/**").permitAll()
-
-                        // File endpoints
                         .requestMatchers("/api/files/**").permitAll()
-
-                        // Auth and password reset
                         .requestMatchers("/api/users/signup", "/api/users/login",
                                 "/api/users/request-reset", "/api/users/verify-reset-code",
                                 "/api/users/reset-password").permitAll()
 
-                        // Active project media download (✅ add permission here)
                         .requestMatchers(HttpMethod.GET, "/api/active_projects/download_media").authenticated()
-
-                        // Active projects finish endpoint (✅ add permission here)
                         .requestMatchers(HttpMethod.POST, "/api/finished_projects").authenticated()
 
-                        // Authenticated user info
+                        .requestMatchers(HttpMethod.POST, "/api/payment/webhook").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/pending-projects/mark-paid").permitAll()
+
                         .requestMatchers("/api/users/me", "/api/users/update").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated()
-
-                        // Projects and messages
                         .requestMatchers("/api/projects/**").authenticated()
                         .requestMatchers("/api/client-projects/**").authenticated()
                         .requestMatchers("/api/messages/**").authenticated()
+                        .requestMatchers("/api/invoices/**").authenticated()
+                        .requestMatchers("/api/feedback/**").authenticated()
 
-                        // Catch-all
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -69,7 +58,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // React dev origin
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // React dev
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

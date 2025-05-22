@@ -1,6 +1,7 @@
 package main.service;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
@@ -31,6 +32,7 @@ public class FirestoreService {
     private static final String INVOICE_COLLECTION = "invoices";
     private static final String PORTFOLIO_COLLECTION = "portfolios";
     private static final String MESSAGES_COLLECTION = "messages";
+    private static final String NOTIFICATION_COLLECTION = "notifications";
 
     private final Firestore db;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -131,6 +133,12 @@ public class FirestoreService {
             System.out.println("🔐 Raw new password: " + newPassword);
         }
 
+    }
+
+    public String getUserEmailById(String userId) throws Exception {
+        DocumentSnapshot snapshot = db.collection("users").document(userId).get().get();
+        if (!snapshot.exists()) return null;
+        return snapshot.getString("email");
     }
 
     // ----------------- Password Reset Tokens -----------------
@@ -262,7 +270,42 @@ public class FirestoreService {
         }
     }
 
-    public boolean movePendingProjectToActive(String projectId, List<String> photographers, List<String> editors, String price) {
+    public boolean movePendingProjectToActive(String projectId) {
+        try {
+            System.out.println("🔍 Starting move for project: " + projectId);
+
+            DocumentReference pendingRef = db.collection("pending_projects").document(projectId);
+            DocumentSnapshot pendingSnapshot = pendingRef.get().get();
+
+            if (!pendingSnapshot.exists()) {
+                System.out.println("❌ Pending project not found: " + projectId);
+                return false;
+            }
+
+            Map<String, Object> projectData = new HashMap<>(pendingSnapshot.getData());
+
+            projectData.put("state", 1);
+            projectData.put("status", "active");
+            projectData.put("assignedAt", Instant.now().toString());
+
+            DocumentReference activeRef = db.collection("active_projects").document(projectId);
+            WriteResult result = activeRef.set(projectData).get();
+
+            System.out.println("✅ Firestore write complete at: " + result.getUpdateTime());
+
+            pendingRef.delete().get();
+            System.out.println("✅ Deleted pending project: " + projectId);
+
+            return true;
+        } catch (Exception e) {
+            System.out.println("❌ Exception while moving project to active:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    public boolean updatePendingProjectDetails(String projectId, List<String> photographers, List<String> editors, String price, String managerId) {
         try {
             DocumentReference pendingRef = db.collection("pending_projects").document(projectId);
             DocumentSnapshot pendingSnapshot = pendingRef.get().get();
@@ -272,29 +315,25 @@ public class FirestoreService {
                 return false;
             }
 
-            // Copy data
-            Map<String, Object> projectData = new HashMap<>(pendingSnapshot.getData());
-            projectData.put("photographers", photographers);
-            projectData.put("editors", editors);
-            projectData.put("price", price);
-            projectData.put("status", "active");
-            projectData.put("assignedAt", Instant.now().toString());
-            projectData.put("state", 1);  // state 1 → photographer phase
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("photographers", photographers);
+            updates.put("editors", editors);
+            updates.put("price", price);
+            updates.put("managerId", managerId);
+            updates.put("assignedAt", Instant.now().toString());
+            updates.put("state", 0);  // state 1 → photographer phase
 
-            // Save to active_projects
-            DocumentReference activeRef = db.collection("active_projects").document(projectId);
-            activeRef.set(projectData).get();
 
-            // Delete from pending_projects
-            pendingRef.delete().get();
+            pendingRef.update(updates).get();
 
-            System.out.println("✅ Project moved to active_projects: " + projectId);
+            System.out.println("✅ Pending project updated with photographers, editors, and price: " + projectId);
             return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
+
 
     public List<Project> getAllActiveProjects() throws ExecutionException, InterruptedException {
         List<Project> projects = new ArrayList<>();
@@ -336,7 +375,7 @@ public class FirestoreService {
                 response.setPrice(project.getPrice());
                 response.setStatus(project.getStatus());
                 response.setType(project.getType());
-                response.setUserId(project.getUserId());
+                response.setUserId(project.getmanagerId());
                 response.setProjectTeamId(project.getProjectTeamId());
                 response.setState(project.getState());
                 response.setPhotographers(project.getPhotographers());
@@ -390,7 +429,7 @@ public class FirestoreService {
                 response.setPrice(project.getPrice());
                 response.setStatus(project.getStatus());
                 response.setType(project.getType());
-                response.setUserId(project.getUserId());
+                response.setUserId(project.getmanagerId());
                 response.setProjectTeamId(project.getProjectTeamId());
                 response.setState(project.getState());
                 response.setPhotographers(project.getPhotographers());
@@ -419,6 +458,40 @@ public class FirestoreService {
 
         return projects;
     }
+
+    public List<Project> getProjectsByUserFromCollectionS(String collectionName, String userId, String role) throws ExecutionException, InterruptedException {
+        List<Project> projects = new ArrayList<>();
+        CollectionReference ref = db.collection(collectionName);
+        Query query;
+
+        switch (role) {
+            case "m":
+                query = ref.whereEqualTo("managerId", userId);
+                break;
+            case "p":
+                query = ref.whereArrayContains("photographers", userId);
+                break;
+            case "e":
+                query = ref.whereArrayContains("editors", userId);
+                break;
+            default:
+                // Fallback to avoid error if role is not one of the expected
+                return projects;
+        }
+
+        QuerySnapshot snapshot = query.get().get();
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            Project project = doc.toObject(Project.class);
+            if (project != null) {
+                project.setId(doc.getId()); // include document ID
+                projects.add(project);
+            }
+        }
+
+        return projects;
+    }
+
 
     public List<Project> getPendingProjectsForClient(String clientId) throws ExecutionException, InterruptedException {
         List<Project> projects = new ArrayList<>();
@@ -649,6 +722,7 @@ public class FirestoreService {
 
     public void createProject(Project project, String clientId) throws ExecutionException, InterruptedException {
         project.setStatus("pending");
+        project.setState(-1);
         project.setClientId(db.collection("users").document(clientId)); // Convert to DocumentReference
         project.setCreationDate(Instant.now().toString());
 
@@ -859,6 +933,17 @@ public class FirestoreService {
         }
         System.out.println("❌ Invoice not found: " + invoiceId);
         return null;
+    }
+
+    public void createInvoice(String clientId, String projectId, long amountCents) throws Exception {
+        Map<String, Object> invoiceData = new HashMap<>();
+        invoiceData.put("clientId", clientId);
+        invoiceData.put("projectId", projectId);
+        invoiceData.put("amount", amountCents);
+        invoiceData.put("status", "pending");
+        invoiceData.put("createdAt", Instant.now().toString());
+
+        db.collection("invoices").add(invoiceData).get();
     }
 
     public String saveInvoice(Invoice invoice) throws ExecutionException, InterruptedException {
@@ -1117,5 +1202,93 @@ public class FirestoreService {
         docRef.set(team).get();
         System.out.println("✅ Created project team with ID: " + docRef.getId());
         return docRef.getId();
+    }
+
+    public void sendPaymentNotification(String projectId, String clientId, String clientEmail, String paymentUrl) throws Exception {
+        // Prepare notification data
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("type", "payment_request");
+        notification.put("projectId", projectId);
+        notification.put("recipientId", clientId);
+        notification.put("email", clientEmail);
+        notification.put("paymentUrl", paymentUrl);
+        notification.put("timestamp", Timestamp.now());
+        notification.put("status", "unread");
+
+        // Get project title for message
+        DocumentSnapshot projectSnapshot = db.collection("pending_projects").document(projectId).get().get();
+        String projectTitle = projectSnapshot.exists() ? projectSnapshot.getString("title") : "your project";
+        notification.put("message", "Please complete your payment for project \"" + projectTitle + "\".");
+
+        // Add notification and retrieve its ID
+        DocumentReference ref = db.collection("notifications").add(notification).get();
+        String id = ref.getId();
+
+        ref.update("id", id).get();
+    }
+
+    public List<Notification> getNotificationsForUser(String userId) throws ExecutionException, InterruptedException {
+        List<Notification> results = new ArrayList<>();
+
+        Query query = db.collection("notifications")
+                .whereEqualTo("recipientId", userId);
+        List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+
+        for (QueryDocumentSnapshot doc : docs) {
+            Notification notification = doc.toObject(Notification.class);
+            notification.setId(doc.getId()); // ✅ This line is critical
+            results.add(notification);
+        }
+
+        return results;
+    }
+
+    public void markNotificationAsRead(String notificationId) throws Exception {
+        db.collection("notifications")
+                .document(notificationId)
+                .update("status", "read")
+                .get();
+    }
+
+    public void deleteNotification(String notificationId) throws Exception {
+        db.collection("notifications")
+                .document(notificationId)
+                .delete()
+                .get();
+    }
+
+    public List<Map<String, Object>> getFeedbackWithReplies() throws ExecutionException, InterruptedException {
+        CollectionReference ref = db.collection("feedback");
+        List<QueryDocumentSnapshot> allDocs = ref.get().get().getDocuments();
+
+        List<Map<String, Object>> feedbacks = new ArrayList<>();
+        Map<String, List<Map<String, Object>>> repliesMap = new HashMap<>();
+
+        for (QueryDocumentSnapshot doc : allDocs) {
+            Map<String, Object> data = doc.getData();
+            data.put("id", doc.getId());
+            String parentId = (String) data.get("parentId");
+            if (parentId == null) {
+                feedbacks.add(data);
+            } else {
+                repliesMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(data);
+            }
+        }
+
+        for (Map<String, Object> fb : feedbacks) {
+            String fbId = (String) fb.get("id");
+            fb.put("replies", repliesMap.getOrDefault(fbId, List.of()));
+        }
+
+        return feedbacks;
+    }
+
+    public void addFeedback(Map<String, Object> feedbackData) {
+        db.collection("feedback").add(feedbackData);
+    }
+
+    public String deleteFeedback(String id) throws ExecutionException, InterruptedException {
+        db.collection("feedback").document(id).delete().get();
+        return "Deleted feedback with ID: " + id;
     }
 }

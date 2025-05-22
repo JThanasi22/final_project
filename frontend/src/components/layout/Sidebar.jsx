@@ -63,8 +63,14 @@ const Sidebar = ({ isOpen, isActiveRoute }) => {
                     <span className="nav-label">Dashboard</span>
                 </div>
                 <div
-                    className={`nav-item ${checkActive('/projects') ? 'active' : ''}`}
-                    onClick={() => navigate('/projects')}
+                    className={`nav-item ${checkActive('/projects') || checkActive('/staff_project') ? 'active' : ''}`}
+                    onClick={() => {
+                        if (['m', 'p', 'e'].includes(userRole)) {
+                            navigate('/staff_project');
+                        } else {
+                            navigate('/projects');
+                        }
+                    }}
                 >
                     <span className="nav-label">Projects</span>
                 </div>

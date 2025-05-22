@@ -6,6 +6,7 @@ import "./dash.css";
 
 const ManagerDashboard = () => {
     const [userEmail, setUserEmail] = useState("Manager");
+    const [userId, setUserId] = useState(null); // <-- New
     const [greeting, setGreeting] = useState("Welcome back");
     const [pendingProjects, setPendingProjects] = useState([]);
     const [activeProjects, setActiveProjects] = useState([]);
@@ -26,7 +27,9 @@ const ManagerDashboard = () => {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
+                console.log("Decoded token:", decoded);
                 setUserEmail(decoded.name || decoded.sub);
+                setUserId(decoded.id);
             } catch (err) {
                 console.error("Invalid token:", err);
                 localStorage.removeItem("token");
@@ -101,22 +104,33 @@ const ManagerDashboard = () => {
     async function activateProject(selectedProjectForAssign, selectedPhotographers, selectedEditors, assignedPrice) {
         try {
             const token = localStorage.getItem("token");
+
+            // ✅ Convert dollars to integer cents
+            const priceInCents = Math.round(parseFloat(assignedPrice) * 100);
+
+            if (isNaN(priceInCents)) {
+                alert("Invalid price entered.");
+                return;
+            }
+
             await axios.post("/api/active_projects", {
                 projectId: selectedProjectForAssign.id,
                 photographers: selectedPhotographers,
                 editors: selectedEditors,
-                price: assignedPrice
+                price: priceInCents, // 💰 Send price in cents
+                managerId: userId
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            alert("Project moved to active successfully!");
+            alert("Payment request sent successfully!");
             setSelectedProjectForAssign(null);
             window.location.reload();
         } catch (error) {
-            console.error("Activation failed:", error);
+            console.error("Payment request not sent", error);
         }
     }
+
 
     const renderProjectList = (title, projects, color) => (
         <div className="projects-card">
@@ -165,7 +179,7 @@ const ManagerDashboard = () => {
                         <p><strong>Type:</strong> {selectedProject.type}</p>
                         <p><strong>Description:</strong> {selectedProject.description}</p>
                         <p><strong>Requirements:</strong> {selectedProject.requirements}</p>
-                        <p><strong>Price:</strong> ${selectedProject.price}</p>
+                        <p><strong>Price:</strong> ${(selectedProject.price)/100}</p>
                         <p><strong>Start Date:</strong> {selectedProject.creationDate}</p>
                         <p><strong>End Date:</strong> {selectedProject.endDate}</p>
                         {pendingProjects.some(p => p.id === selectedProject.id) && (
@@ -238,7 +252,7 @@ const ManagerDashboard = () => {
                             <div className="assign-footer">
                                 <input
                                     type="text"
-                                    value={assignedPrice ? `${assignedPrice}$` : ""}
+                                    value={assignedPrice ? `${assignedPrice}` : ""}
                                     onChange={e => {
                                         const raw = e.target.value.replace(/\$/g, "").trim();
                                         setAssignedPrice(raw);

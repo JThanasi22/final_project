@@ -38,8 +38,7 @@ public class ProjectController {
     public ResponseEntity<String> activateProject(@RequestHeader("Authorization") String token, @RequestBody Project incomingProject) throws ExecutionException, InterruptedException {
         String managerId = JwtUtil.extractUserId(token.replace("Bearer ", ""));
 
-        // Enforce all required fields from controller
-        incomingProject.setUserId(managerId);
+        incomingProject.setmanagerId(managerId);
         incomingProject.setStatus("active");
 
         // ⚠️ Optional: validate required fields
