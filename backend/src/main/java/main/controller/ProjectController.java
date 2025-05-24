@@ -2,6 +2,7 @@ package main.controller;
 
 import main.dto.ProjectResponse;
 import main.model.Project;
+import main.model.User;
 import main.service.FirestoreService;
 import main.util.JwtUtil;
 import org.springframework.http.ResponseEntity;
@@ -28,9 +29,30 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createProject(@RequestHeader("Authorization") String token, @RequestBody Project project) throws ExecutionException, InterruptedException {
+    public ResponseEntity<String> createProject(
+            @RequestHeader("Authorization") String token,
+            @RequestBody Project project
+    ) throws ExecutionException, InterruptedException {
         String clientId = JwtUtil.extractUserId(token.replace("Bearer ", ""));
         firestoreService.createProject(project, clientId);
+
+        // 🔔 Notify all managers about the new project request
+        try {
+            String title = project.getTitle() != null ? project.getTitle() : "Untitled";
+            for (User u : firestoreService.getAllUsers()) {
+                if ("m".equals(u.getRole())) {
+                    firestoreService.sendGeneralNotification(
+                            u.getId(),
+                            "A new project request was submitted: \"" + title + "\"",
+                            "project_request"
+                    );
+                }
+            }
+        } catch (Exception e) {
+            // log but don't fail the request
+            e.printStackTrace();
+        }
+
         return ResponseEntity.ok("Project created successfully.");
     }
 

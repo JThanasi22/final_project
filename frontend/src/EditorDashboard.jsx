@@ -3,6 +3,8 @@ import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import Layout from "./components/Layout";
 import "./dash.css";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const EditorDashboard = () => {
     const [userEmail, setUserEmail] = useState("User");
@@ -93,25 +95,24 @@ const EditorDashboard = () => {
 
     const handleDownloadPhotos = async () => {
         const token = localStorage.getItem("token");
-
         try {
             const response = await axios.get("/api/active_projects/download_media", {
                 params: { projectId: selectedProject.id },
                 headers: { Authorization: `Bearer ${token}` }
             });
+            const mediaFiles = response.data; // [{ fileName, content }, ...]
 
-            const mediaFiles = response.data;
-
-            mediaFiles.forEach((file) => {
-                const link = document.createElement("a");
-                link.href = `data:application/octet-stream;base64,${file.content}`;
-                link.download = file.fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            // Build a ZIP just like in PortfolioGrid
+            const zip = new JSZip();
+            mediaFiles.forEach(media => {
+                // strip any "data:*;base64," prefix if present
+                const base64 = media.content.split(",").pop();
+                zip.file(media.fileName, base64, { base64: true });
             });
 
-            console.log("✅ Download started.");
+            // Generate the blob and prompt save
+            const blob = await zip.generateAsync({ type: "blob" });
+            saveAs(blob, `${selectedProject.title || "media"}.zip`);
         } catch (error) {
             console.error("❌ Error downloading media:", error);
             alert("Failed to download media.");
