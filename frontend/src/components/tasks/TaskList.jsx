@@ -39,7 +39,7 @@ const TaskList = () => {
         return d.toISOString().split('T')[0];
     };
 
-    const fetchTasks = async (role, token) => {
+    const fetchTasks = async (role, token, userList, projectList) => {
         setLoading(true);
         try {
             let res;
@@ -48,7 +48,19 @@ const TaskList = () => {
             } else {
                 res = await axios.get(`${API_URL}/api/tasks/assigned`, { headers: { Authorization: `Bearer ${token}` } });
             }
-            setTasks(res.data);
+
+            const enrichedTasks = res.data.map(task => {
+                const assignedUser = userList.find(u => u.id === task.assignedToId);
+                const project = projectList.find(p => p.id === task.projectId);
+
+                return {
+                    ...task,
+                    assignedTo: assignedUser ? `${assignedUser.name || ''} ${assignedUser.surname || ''}`.trim() : '',
+                    project: project ? project.title : ''
+                };
+            });
+
+            setTasks(enrichedTasks);
         } catch (err) {
             console.error('Error fetching tasks:', err);
             setSnackbar({ open: true, message: 'Failed to load tasks.', severity: 'error' });
@@ -68,17 +80,15 @@ const TaskList = () => {
                 const role = decoded.role;
                 setUserRole(role);
 
-                await fetchTasks(role, token);
+                const [projectRes, userRes] = await Promise.all([
+                    axios.get(`${API_URL}/api/pending-projects/active`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${API_URL}/api/users`, { headers: { Authorization: `Bearer ${token}` } })
+                ]);
 
-                const projectRes = await axios.get(`${API_URL}/api/pending-projects/active`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
                 setProjects(projectRes.data);
-
-                const userRes = await axios.get(`${API_URL}/api/users`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
                 setUsers(userRes.data);
+
+                await fetchTasks(role, token, userRes.data, projectRes.data);
             } catch (err) {
                 console.error('Initialization error:', err);
                 setSnackbar({ open: true, message: 'Failed to load data.', severity: 'error' });
@@ -123,7 +133,7 @@ const TaskList = () => {
                 await axios.post(`${API_URL}/api/tasks`, editedTask, getAuthHeader());
                 setSnackbar({ open: true, message: 'Task created.', severity: 'success' });
             }
-            await fetchTasks(userRole, token);
+            await fetchTasks(userRole, token, users, projects); // ✅ fixed here
             handleCloseDialog();
         } catch (err) {
             console.error(err);
@@ -163,7 +173,7 @@ const TaskList = () => {
             const token = localStorage.getItem('token');
             await axios.delete(`${API_URL}/api/tasks/${selectedTask.id}`, getAuthHeader());
             setSnackbar({ open: true, message: 'Task deleted.', severity: 'success' });
-            await fetchTasks(userRole, token);
+            await fetchTasks(userRole, token, users, projects); // ✅ fixed here
             handleCloseDialog();
         } catch (err) {
             console.error(err);
@@ -316,7 +326,7 @@ const TaskList = () => {
                             renderInput={(params) => <TextField {...params} label="Project" fullWidth required />}
                         />
                         <Autocomplete
-                            options={users}
+                            options={users.filter(u => u.role === 'p' || u.role === 'e')}
                             getOptionLabel={(option) => `${option.name || ''} ${option.surname || ''}`.trim()}
                             value={users.find(u => u.id === editedTask?.assignedToId) || null}
                             onChange={(e, value) => setEditedTask({ ...editedTask, assignedToId: value?.id || '' })}

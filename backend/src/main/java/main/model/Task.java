@@ -16,6 +16,8 @@ public class Task {
     private String userId;
     private Date createdAt;
     private Date updatedAt;
+    private String createdBy;
+
 
     public Task() {
         // Default constructor required for Firestore
@@ -108,7 +110,6 @@ public class Task {
     public void setUserId(String userId) {
         this.userId = userId;
     }
-
     public Date getCreatedAt() {
         return createdAt;
     }

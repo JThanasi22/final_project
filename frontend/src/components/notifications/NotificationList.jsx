@@ -28,7 +28,6 @@ const NotificationList = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
-                // ✅ Sort by timestamp descending
                 const sorted = res.data.sort(
                     (a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)
                 );
@@ -69,7 +68,9 @@ const NotificationList = () => {
     };
 
     const openPayment = (url) => {
-        window.open(url, "_blank");
+        if (url) {
+            window.open(url, "_blank");
+        }
     };
 
     return (
@@ -116,68 +117,81 @@ const NotificationList = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {notifications.map((notification) => (
-                                    <TableRow
-                                        key={notification.id}
-                                        sx={{
-                                            '&:last-child td, &:last-child th': { border: 0 },
-                                            bgcolor: notification.status === 'unread' ? '#f8f9fa' : 'transparent'
-                                        }}
-                                    >
-                                        <TableCell>
-                                            <Chip
-                                                label={notification.type}
-                                                color={
-                                                    notification.type === 'Project Update' ? 'primary' :
-                                                        notification.type === 'New Comment' ? 'success' : 'warning'
-                                                }
-                                                size="small"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography title={notification.message} noWrap>
-                                                {notification.message}
+                                {notifications.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center">
+                                            <Typography variant="body1" color="text.secondary">
+                                                No notifications to show.
                                             </Typography>
                                         </TableCell>
-                                        <TableCell>
-                                            {notification.timestamp?.seconds
-                                                ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
-                                                : "N/A"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={notification.status}
-                                                color={notification.status === 'unread' ? 'warning' : 'default'}
-                                                size="small"
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                                                {notification.status === 'unread' && (
-                                                    <IconButton size="small" color="primary" onClick={() => markAsRead(notification.id)}>
-                                                        <MarkEmailReadIcon />
-                                                    </IconButton>
-                                                )}
-                                                {notification.type === 'payment_request' && (
-                                                    <Chip
-                                                        label="Pay Now"
-                                                        color="success"
-                                                        onClick={async () => {
-                                                            await markAsRead(notification.id);
-                                                            openPayment(notification.paymentUrl);
-                                                        }}
-                                                        size="small"
-                                                        sx={{ cursor: 'pointer' }}
-                                                    />
-                                                )}
-
-                                                <IconButton size="small" color="error" onClick={() => deleteNotification(notification.id)}>
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            </Box>
-                                        </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    notifications.map((notification) => (
+                                        <TableRow
+                                            key={notification.id}
+                                            sx={{
+                                                '&:last-child td, &:last-child th': { border: 0 },
+                                                bgcolor: notification.status === 'unread' ? '#f8f9fa' : 'transparent'
+                                            }}
+                                        >
+                                            <TableCell>
+                                                <Chip
+                                                    label={notification.type}
+                                                    color={
+                                                        notification.type === 'Project Update' ? 'primary' :
+                                                            notification.type === 'New Comment' ? 'success' :
+                                                                notification.type === 'task_assignment' ? 'info' :
+                                                                    notification.type === 'task_completed' ? 'secondary' :
+                                                                        notification.type === 'payment_request' ? 'success' :
+                                                                            'default'
+                                                    }
+                                                    size="small"
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography title={notification.message} noWrap>
+                                                    {notification.message}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                {notification.timestamp?.seconds
+                                                    ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
+                                                    : "N/A"}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={notification.status}
+                                                    color={notification.status === 'unread' ? 'warning' : 'default'}
+                                                    size="small"
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                                                    {notification.status === 'unread' && (
+                                                        <IconButton size="small" color="primary" onClick={() => markAsRead(notification.id)}>
+                                                            <MarkEmailReadIcon />
+                                                        </IconButton>
+                                                    )}
+                                                    {notification.type === 'payment_request' && notification.paymentUrl && (
+                                                        <Chip
+                                                            label="Pay Now"
+                                                            color="success"
+                                                            onClick={async () => {
+                                                                await markAsRead(notification.id);
+                                                                openPayment(notification.paymentUrl);
+                                                            }}
+                                                            size="small"
+                                                            sx={{ cursor: 'pointer' }}
+                                                        />
+                                                    )}
+                                                    <IconButton size="small" color="error" onClick={() => deleteNotification(notification.id)}>
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Box>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>

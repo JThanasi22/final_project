@@ -113,6 +113,14 @@ public class FirestoreService {
         }
     }
 
+    public User getUserById(String userId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot doc = db.collection("users").document(userId).get().get();
+        if (doc.exists()) {
+            return doc.toObject(User.class);
+        }
+        return null;
+    }
+
 
     private DocumentSnapshot getUserDocByEmail(String email) throws ExecutionException, InterruptedException {
         CollectionReference users = db.collection(USER_COLLECTION);
@@ -890,8 +898,6 @@ public class FirestoreService {
         }
     }
 
-    // ----------------- Invoice Management -----------------
-
     public List<Invoice> getAllInvoices() throws ExecutionException, InterruptedException {
         List<Invoice> invoices = new ArrayList<>();
         QuerySnapshot snapshot = db.collection(INVOICE_COLLECTION).get().get();
@@ -1225,6 +1231,16 @@ public class FirestoreService {
         String id = ref.getId();
 
         ref.update("id", id).get();
+    }
+
+    public void sendGeneralNotification(String recipientId, String message, String type) throws Exception {
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("recipientId", recipientId);
+        notification.put("message", message);
+        notification.put("type", type);
+        notification.put("timestamp", new Date());
+        notification.put("status", "unread");
+        db.collection("notifications").add(notification).get();
     }
 
     public List<Notification> getNotificationsForUser(String userId) throws ExecutionException, InterruptedException {
