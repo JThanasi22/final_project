@@ -43,6 +43,14 @@ const NotificationList = () => {
 
     const token = localStorage.getItem('token');
 
+    const TYPE_COLOR_MAP = {
+        task_assignment:  'info',       // blue-ish
+        task_completed:   'secondary',  // purple-ish
+        task_reply:       'warning',    // amber
+        project_update:   'primary',    // indigo
+        payment_request:  'success',    // green
+    };
+
     const markAsRead = async (id) => {
         try {
             await axios.put(`/api/notifications/${id}/read`, {}, {
@@ -136,16 +144,9 @@ const NotificationList = () => {
                                         >
                                             <TableCell>
                                                 <Chip
-                                                    label={notification.type}
-                                                    color={
-                                                        notification.type === 'Project Update' ? 'primary' :
-                                                            notification.type === 'New Comment' ? 'success' :
-                                                                notification.type === 'task_assignment' ? 'info' :
-                                                                    notification.type === 'task_completed' ? 'secondary' :
-                                                                        notification.type === 'payment_request' ? 'success' :
-                                                                            'default'
-                                                    }
-                                                    size="small"
+                                                label={notification.type}
+                                                size="small"
+                                                color={TYPE_COLOR_MAP[notification.type] || 'default'}
                                                 />
                                             </TableCell>
                                             <TableCell>

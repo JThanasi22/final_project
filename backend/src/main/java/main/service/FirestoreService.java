@@ -884,6 +884,35 @@ public class FirestoreService {
         }
     }
 
+    // Collection name
+    private static final String TASK_REPLY_COLLECTION = "task_reply";
+
+    // Fetch replies for a task
+    public List<TaskReply> getRepliesForTask(String taskId) throws Exception {
+        List<TaskReply> replies = new ArrayList<>();
+        QuerySnapshot snapshot = db.collection("task_replies")
+                .whereEqualTo("taskId", taskId)
+                // .orderBy("timestamp")   <-- remove this line
+                .get()
+                .get();
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            TaskReply r = doc.toObject(TaskReply.class);
+            replies.add(r);
+        }
+        // now sort locally:
+        replies.sort(Comparator.comparing(r -> r.getTimestamp().toDate()));
+        return replies;
+    }
+
+    public void addReply(String taskId, String userId, String message) throws Exception {
+        Map<String,Object> data = new HashMap<>();
+        data.put("taskId",   taskId);
+        data.put("userId",   userId);
+        data.put("message",  message);
+        data.put("timestamp", new Date());
+        db.collection("task_replies").add(data).get();
+    }
+
     public boolean deleteTask(String taskId) throws ExecutionException, InterruptedException {
         DocumentReference docRef = db.collection(TASK_COLLECTION).document(taskId);
         DocumentSnapshot doc = docRef.get().get();

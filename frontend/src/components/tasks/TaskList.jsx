@@ -5,10 +5,12 @@ import Layout from '../Layout';
 import '../../dash.css';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CommentIcon from '@mui/icons-material/Comment';
+
 import {
     TextField, MenuItem, IconButton, Button,
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Snackbar, Alert, Autocomplete
+    Snackbar, Alert, Autocomplete, Typography
 } from '@mui/material';
 
 const API_URL = 'http://localhost:8080';
@@ -28,7 +30,10 @@ const TaskList = () => {
     const completedCount = tasks.filter(t => t.status === 'Completed').length;
     const totalCount = tasks.length;
     const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
+    const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+    const [replyMessage, setReplyMessage]       = useState('');
+    const [replies, setReplies]                 = useState([]);
+    const [selectedTaskId, setSelectedTaskId]   = useState(null);
     const getAuthHeader = () => {
         const token = localStorage.getItem('token');
         return { headers: { Authorization: `Bearer ${token}` } };
@@ -197,6 +202,47 @@ const TaskList = () => {
             }
         });
 
+    // Translate a userId into "Name Surname", falling back to the ID if not found
+    const getUserName = (id) => {
+        const u = users.find(u => u.id === id);
+        return u ? `${u.name} ${u.surname}` : id;
+    };
+
+    // Open Q&A dialog for a given task
+    const openReply = async (taskId) => {
+        try {
+            const res = await axios.get(
+                `${API_URL}/api/tasks/${taskId}/replies`,
+                getAuthHeader()
+            );
+            setReplies(res.data);
+            setSelectedTaskId(taskId);
+            setReplyDialogOpen(true);
+        } catch (err) {
+            console.error('Could not load replies', err);
+        }
+    };
+
+    // Submit a new reply
+    const submitReply = async () => {
+        if (!replyMessage) return;
+        try {
+            await axios.post(
+                `${API_URL}/api/tasks/${selectedTaskId}/replies`,
+                { message: replyMessage },
+                getAuthHeader()
+            );
+            const res = await axios.get(
+                `${API_URL}/api/tasks/${selectedTaskId}/replies`,
+                getAuthHeader()
+            );
+            setReplies(res.data);
+            setReplyMessage('');
+        } catch (err) {
+            console.error('Could not post reply', err);
+        }
+    };
+
     return (
         <Layout>
             <div className="dashboard-content">
@@ -293,6 +339,9 @@ const TaskList = () => {
                                                     </IconButton>
                                                 </>
                                             )}
+                                            <IconButton color="secondary" onClick={() => openReply(task.id)}>
+                                                <CommentIcon />
+                                            </IconButton>
                                         </div>
                                     </div>
                                 ))}
@@ -347,6 +396,30 @@ const TaskList = () => {
                     <DialogActions>
                         <Button onClick={handleCloseDialog}>Cancel</Button>
                         <Button variant="contained" color="error" onClick={handleDelete}>Delete</Button>
+                    </DialogActions>
+                </Dialog>
+
+                <Dialog open={replyDialogOpen} onClose={() => setReplyDialogOpen(false)} fullWidth maxWidth="sm">
+                    <DialogTitle>Task Discussion</DialogTitle>
+                    <DialogContent>
+                        {replies.map(r => (
+                            <Typography key={r.id} variant="body2" sx={{ mb: 1 }}>
+                                <strong>{getUserName(r.userId)}:</strong> {r.message}
+                            </Typography>
+                        ))}
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            placeholder="Leave a question or reply…"
+                            value={replyMessage}
+                            onChange={e => setReplyMessage(e.target.value)}
+                            sx={{ mt: 2 }}
+                        />
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setReplyDialogOpen(false)}>Cancel</Button>
+                        <Button variant="contained" onClick={submitReply}>Send</Button>
                     </DialogActions>
                 </Dialog>
 
