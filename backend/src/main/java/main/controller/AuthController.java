@@ -32,32 +32,80 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
         try {
-            System.out.println("➡️ Login attempt for: " + request.getEmail());
+            String email = payload.get("email");
+            String password = payload.get("password");
+            String deviceId = payload.get("deviceId"); // optional
 
-            User user = firestoreService.getUserByEmail(request.getEmail());
-            if (user == null) {
-                System.out.println("No user found");
+            System.out.println("➡️ Login attempt for: " + email);
+
+            User user = firestoreService.getUserByEmail(email);
+            if (user == null || !firestoreService.validateUser(email, password)) {
                 return ResponseEntity.status(401).body("Invalid credentials");
             }
 
-            boolean valid = firestoreService.validateUser(request.getEmail(), request.getPassword());
-            System.out.println("Password valid: " + valid);
+            // ✅ TEMPORARILY BYPASSING 2FA
+            String token = JwtUtil.generateToken(user);
+            return ResponseEntity.ok(Map.of("token", token));
 
-            if (valid) {
-                String token = JwtUtil.generateToken(user);
-                System.out.println("Login success. Token: " + token);
-                return ResponseEntity.ok(Map.of("token", token));
-            } else {
-                System.out.println("Invalid credentials for: " + request.getEmail());
-                return ResponseEntity.status(401).body("Invalid credentials");
-            }
+        /*
+        // 🔒 Check remembered device
+        if (deviceId != null && firestoreService.isDeviceRemembered(email, deviceId)) {
+            String token = JwtUtil.generateToken(user);
+            return ResponseEntity.ok(Map.of("token", token));
+        }
+
+        // 🔐 Proceed to 2FA
+        String code = String.format("%06d", new Random().nextInt(999999));
+        long expiresAt = System.currentTimeMillis() + 5 * 60 * 1000;
+
+        firestoreService.saveTwoFactorCode(email, code, expiresAt);
+        emailService.sendResetCode(email, code);
+
+        return ResponseEntity.ok("2FA code sent");
+        */
+
         } catch (Exception e) {
-            System.err.println("❌ Login error: " + e.getMessage());
-            return ResponseEntity.status(500).body("Login failed due to internal error");
+            return ResponseEntity.status(500).body("Internal error");
         }
     }
+
+
+
+    @PostMapping("/verify-2fa")
+    public ResponseEntity<?> verify2FA(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String code = payload.get("code");
+        String deviceId = payload.get("deviceId"); // optional
+        boolean remember = Boolean.parseBoolean(payload.getOrDefault("remember", "false"));
+
+        try {
+            DocumentSnapshot doc = firestoreService.getTwoFactorCode(email);
+            if (doc == null || !doc.exists()) return ResponseEntity.badRequest().body("No code found");
+
+            String storedCode = doc.getString("code");
+            Long expiresAt = doc.getLong("expiresAt");
+
+            if (!code.equals(storedCode)) return ResponseEntity.badRequest().body("Invalid code");
+            if (System.currentTimeMillis() > expiresAt) return ResponseEntity.badRequest().body("Code expired");
+
+            firestoreService.deleteTwoFactorCode(email);
+            User user = firestoreService.getUserByEmail(email);
+            String token = JwtUtil.generateToken(user);
+
+            if (remember && deviceId != null) {
+                firestoreService.rememberDevice(email, deviceId);
+            }
+
+            return ResponseEntity.ok(Map.of("token", token));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Verification failed");
+        }
+    }
+
+
+
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {

@@ -2,6 +2,8 @@ package main.controller;
 
 import main.dto.UserDTO;
 import main.model.User;
+import main.service.EmailService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import main.service.FirestoreService;
@@ -13,6 +15,9 @@ import java.util.concurrent.ExecutionException;
 @RestController
 @RequestMapping("/api/users")
 public class Usercontroller {
+
+    @Autowired
+    private EmailService emailService;
     private final FirestoreService firestoreService;
 
     public Usercontroller(FirestoreService firestoreService) {
@@ -26,6 +31,10 @@ public class Usercontroller {
         try {
             String result = firestoreService.saveUser(user);
             System.out.println("Signup result: " + result); // 👈 Log output
+
+            // Send greeting email after successful signup
+            emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+
             return result;
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace(); // 👈 Log the error

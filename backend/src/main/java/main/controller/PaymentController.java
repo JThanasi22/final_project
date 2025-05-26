@@ -44,9 +44,8 @@ public class PaymentController {
     public Map<String, String> createPaymentLink(@RequestBody Map<String, Object> payload) throws Exception {
         String projectId = payload.get("projectId").toString();
         long totalAmount = Long.parseLong(payload.get("amount").toString());
-        long halfAmount = totalAmount / 2;
 
-        String paymentUrl = stripeService.generatePaymentLink(projectId, halfAmount);
+        String paymentUrl = stripeService.generatePaymentLink(projectId, totalAmount);
         return Map.of("paymentUrl", paymentUrl);
     }
 
@@ -104,10 +103,9 @@ public class PaymentController {
                         }
 
                         long price = Long.parseLong(priceStr);
-                        long halfAmount = price / 2;
 
                         if (clientId != null) {
-                            firestoreService.createInvoice(clientId, projectId, halfAmount);
+                            firestoreService.createInvoice(clientId, projectId, price);
                             System.out.println("✅ Invoice created for project: " + projectId);
                         } else {
                             System.err.println("❌ Client ID is null for project: " + projectId);

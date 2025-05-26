@@ -27,27 +27,29 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/google/**").permitAll()
+                        .requestMatchers("/google/oauth2callback").permitAll()
                         .requestMatchers("/ws/**", "/app/**", "/topic/**").permitAll()
                         .requestMatchers("/api/portfolios/**").permitAll()
                         .requestMatchers("/api/files/**").permitAll()
                         .requestMatchers("/api/users/signup", "/api/users/login",
                                 "/api/users/request-reset", "/api/users/verify-reset-code",
-                                "/api/users/reset-password").permitAll()
-
+                                "/api/users/reset-password", "/api/users/verify-2fa").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/active_projects/download_media").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/finished_projects").authenticated()
-
                         .requestMatchers(HttpMethod.POST, "/api/payment/webhook").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pending-projects/mark-paid").permitAll()
 
+                        .requestMatchers("/api/google/events").authenticated()
                         .requestMatchers("/api/users/me", "/api/users/update").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated()
                         .requestMatchers("/api/projects/**").authenticated()
                         .requestMatchers("/api/client-projects/**").authenticated()
                         .requestMatchers("/api/messages/**").authenticated()
+                        .requestMatchers("/api/my-projects").authenticated()
                         .requestMatchers("/api/invoices/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/my-projects").authenticated()
                         .requestMatchers("/api/feedback/**").authenticated()
-
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -58,15 +60,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // React dev
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173")); // ✅ Use allowedOriginPatterns
+        config.setAllowCredentials(true); // ✅ Must be true to allow cookies or Authorization headers
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
+
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -9,10 +9,12 @@ public class User {
     private String birthday;
     private String password; // Will be encrypted
     private String role = "c"; // Default role: 'c'
+    private String googleRefreshToken; // 🔑 NEW field for Calendar access
 
     public User() {}
 
     public User(String id, String name, String surname, String email, String phone, String birthday, String password) {
+        this.id = id;
         this.name = name;
         this.surname = surname;
         this.email = email;
@@ -21,6 +23,7 @@ public class User {
         this.password = password;
     }
 
+    // ✅ Getters and Setters
     public String getId() {
         return id;
     }
@@ -83,5 +86,13 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getGoogleRefreshToken() {
+        return googleRefreshToken;
+    }
+
+    public void setGoogleRefreshToken(String googleRefreshToken) {
+        this.googleRefreshToken = googleRefreshToken;
     }
 }

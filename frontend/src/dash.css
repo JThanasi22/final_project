@@ -7,6 +7,50 @@
   font-family: 'Arial', sans-serif;
 }
 
+.assign-modal {
+  max-width: 600px;
+  padding: 20px;
+  font-size: 0.9rem;
+  transform: scale(0.95);
+}
+
+.assign-modal .staff-group h3 {
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.assign-modal .staff-card {
+  padding: 8px;
+  margin: 4px;
+  font-size: 0.85rem;
+}
+
+.assign-modal .price-input {
+  width: 100px;
+  padding: 6px;
+  font-size: 0.9rem;
+}
+
+
+.dashboard-content-row {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+
+.projects-card-row {
+  flex: 1;
+  min-width: 250px;
+  max-width: 300px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+}
+
+
 /* Sidebar Styles */
 .sidebar {
   width: 250px;

@@ -28,7 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String requestPath = URLDecoder.decode(request.getRequestURI(), StandardCharsets.UTF_8);
         System.out.println("🔍 Request Path: " + requestPath);
 
-        // Public endpoints — skip JWT check
+        // Skip JWT check for public paths
         if (requestPath != null && (
                 requestPath.startsWith("/api/portfolios") ||
                         requestPath.startsWith("/api/files") ||
@@ -38,17 +38,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         requestPath.equals("/api/users/verify-reset-code") ||
                         requestPath.equals("/api/users/reset-password") ||
                         requestPath.startsWith("/api/users/email/") ||
-                        requestPath.startsWith("/ws")
+                        requestPath.startsWith("/ws") ||
+                        requestPath.startsWith("/google/") // <-- This skips Google OAuth init, NOT the /api/google/events
         )) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extract Bearer token
+        // 🔒 Extract and validate the JWT token
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
+
+            if (!JwtUtil.validateToken(token)) {
+                System.out.println("❌ Invalid or expired JWT");
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                return;
+            }
 
             String email = JwtUtil.extractEmail(token);
             String role = JwtUtil.extractRole(token);
@@ -65,10 +72,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                System.out.println("📨 Incoming token: " + authHeader);
-                System.out.println("🔐 Extracted userId: " + userId);
-                System.out.println("📧 Extracted email: " + email);
+                System.out.println("✅ Authenticated user: " + email + " with role " + role);
             }
+        } else {
+            System.out.println("⚠️ Missing or malformed Authorization header");
         }
 
         filterChain.doFilter(request, response);

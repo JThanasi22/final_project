@@ -36,16 +36,18 @@ public class MediaController {
     @PostMapping("/upload_final_media")
     public ResponseEntity<String> uploadFinalMedia(
             @RequestParam("projectId") String projectId,
-            @RequestParam("files") List<MultipartFile> files
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "watermark", required = false, defaultValue = "false") boolean applyWatermark
     ) {
         try {
-            firestoreService.attachFinalMediaToProject(projectId, files);
+            firestoreService.attachFinalMediaToProject(projectId, files, applyWatermark);
             return ResponseEntity.ok("Final media uploaded and attached successfully.");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error uploading final media: " + e.getMessage());
         }
     }
+
 
     @GetMapping("/download_media")
     public ResponseEntity<List<Map<String, String>>> downloadMedia(

@@ -1,5 +1,6 @@
 package main.util;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -23,14 +24,20 @@ public class JwtUtil {
                 .compact();
     }
 
-    public static String validateToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+    public static boolean validateToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(SECRET_KEY)
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            return claims.getExpiration().after(new Date());
+        } catch (Exception e) {
+            System.out.println("❌ Token validation error: " + e.getMessage());
+            return false;
+        }
     }
+
 
     public static String extractEmail(String token) {
         try {

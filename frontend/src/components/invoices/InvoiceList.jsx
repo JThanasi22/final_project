@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    Button, Typography, Box, Chip, Dialog, DialogTitle, DialogContent,
-    DialogActions, TextField, MenuItem, Select, FormControl, InputLabel,
-    CircularProgress, Alert
+    Button, Typography, Box, Dialog, DialogTitle, DialogContent,
+    DialogActions, TextField, MenuItem, CircularProgress, Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import Layout from '../Layout';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080';
 
 const parseJwt = (token) => {
     try {
@@ -34,18 +29,31 @@ const InvoiceList = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [dialogMode, setDialogMode] = useState('view');
-    const [filter, setFilter] = useState('ALL');
     const [loading, setLoading] = useState(false);
-    const [clients, setClients] = useState([]);
     const [error, setError] = useState(null);
     const [userRole, setUserRole] = useState(null);
     const [userId, setUserId] = useState(null);
+    const [clients, setClients] = useState([]);
+    const [managerProjects, setManagerProjects] = useState([]);
+    const [openReportDialog, setOpenReportDialog] = useState(false);
+    const [reportStartDate, setReportStartDate] = useState('');
+    const [reportEndDate, setReportEndDate] = useState('');
 
     const getAuthHeader = () => {
         const token = localStorage.getItem('token');
+        console.log(parseJwt(token));
         return {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` }
         };
+    };
+
+    const fetchClients = async () => {
+        try {
+            const res = await axios.get("http://localhost:8080/api/users", getAuthHeader());
+            setClients(res.data || []);
+        } catch (err) {
+            console.error("Failed to fetch clients:", err);
+        }
     };
 
     useEffect(() => {
@@ -56,56 +64,35 @@ const InvoiceList = () => {
             setUserId(decoded?.userId || decoded?.sub);
         }
 
-        fetchInvoices();
-        fetchClients();
+        fetchInvoices().then(r => fetchManagerProjects().then(r => fetchClients()));
     }, []);
 
     const fetchInvoices = async () => {
         setLoading(true);
-        setError(null);
         try {
-            const response = await axios.get(`${API_URL}/api/invoices`, getAuthHeader());
-            const allInvoices = response.data || [];
-
-            if (userRole === 'c') {
-                const clientInvoices = allInvoices.filter(inv => inv.clientId === userId);
-                setInvoices(clientInvoices);
-            } else {
-                setInvoices(allInvoices);
-            }
-        } catch (error) {
-            console.error("Error fetching invoices:", error);
-            setError("Failed to load invoices. Please try again later.");
+            const res = await axios.get(`http://localhost:8080/api/invoices`, getAuthHeader());
+            setInvoices(res.data || []);
+        } catch (err) {
+            console.error("Error fetching invoices:", err);
+            setError("Failed to load invoices.");
             setInvoices([]);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    const fetchClients = async () => {
+    const fetchManagerProjects = async () => {
         try {
-            const response = await axios.get(`${API_URL}/api/users`, getAuthHeader());
-            const clientUsers = response.data.filter(user => user.role === 'c');
-            setClients(clientUsers);
-        } catch (error) {
-            console.error("Error fetching clients:", error);
-            setClients([]);
+            const res = await axios.get(`http://localhost:8080/api/my-active-projects`, getAuthHeader());
+            setManagerProjects(res.data || []);
+        } catch (err) {
+            console.error("Failed to fetch projects:", err);
         }
     };
 
-    const handleOpenDialog = (invoice, mode) => {
-        if (mode === 'create') {
-            setSelectedInvoice({
-                clientId: '',
-                amount: 0,
-                tax: 0,
-                total: 0,
-                status: 'Pending',
-                dueDate: new Date().toISOString().split('T')[0],
-            });
-        } else {
-            setSelectedInvoice(invoice);
-        }
-        setDialogMode(mode);
+    const handleOpenDialog = () => {
+        setSelectedInvoice({ projectId: '', amount: '' });
+        setDialogMode('create');
         setOpenDialog(true);
     };
 
@@ -117,109 +104,47 @@ const InvoiceList = () => {
 
     const handleSave = async () => {
         try {
-            if (!selectedInvoice.clientId || selectedInvoice.amount <= 0 || !selectedInvoice.dueDate) {
-                alert('Please complete all required fields');
+            if (!selectedInvoice.projectId || selectedInvoice.amount <= 0) {
+                alert('Project and amount are required');
                 return;
             }
 
-            const selectedClient = clients.find(c => c.id === selectedInvoice.clientId);
-            if (!selectedClient) return alert('Client not found');
-
-            const clientName = `${selectedClient.name} ${selectedClient.surname}`;
-            const newInvoice = {
-                ...selectedInvoice,
-                clientName,
-                amount: Number(selectedInvoice.amount),
-                tax: Number(selectedInvoice.tax),
-                total: Number(selectedInvoice.total),
-                createdAt: new Date().toISOString().split('T')[0],
+            const payload = {
+                projectId: selectedInvoice.projectId,
+                amount: Number(selectedInvoice.amount)
             };
 
-            if (dialogMode === 'create') {
-                await axios.post(`${API_URL}/api/invoices`, newInvoice, getAuthHeader());
-                alert('Invoice created');
-                fetchInvoices();
-                handleCloseDialog();
-            } else if (dialogMode === 'edit') {
-                const updatedInvoice = {
-                    ...selectedInvoice,
-                    amount: Number(selectedInvoice.amount),
-                    tax: Number(selectedInvoice.tax),
-                    total: Number(selectedInvoice.total)
-                };
-                await axios.put(`${API_URL}/api/invoices/${selectedInvoice.id}`, updatedInvoice, getAuthHeader());
-                alert('Invoice updated');
-                fetchInvoices();
-                handleCloseDialog();
-            }
-        } catch (error) {
-            console.error("Save error:", error);
-            alert("An error occurred while saving the invoice.");
+            await axios.post(`http://localhost:8080/api/invoices`, payload, getAuthHeader());
+            alert('Invoice created');
+            await fetchInvoices();
+            handleCloseDialog();
+        } catch (err) {
+            console.error("Create error:", err);
+            alert("Error creating invoice");
         }
     };
-
-    const handleDelete = async (invoiceId) => {
-        if (!confirm('Are you sure you want to delete this invoice?')) return;
-        try {
-            await axios.delete(`${API_URL}/api/invoices/${invoiceId}`, getAuthHeader());
-            fetchInvoices();
-        } catch (error) {
-            console.error("Delete error:", error);
-            alert("Failed to delete invoice.");
-        }
-    };
-
-    const handleInputChange = (field, value) => {
-        const updated = { ...selectedInvoice, [field]: value };
-        if (field === 'amount') {
-            const amount = Number(value);
-            const tax = amount * 0.1;
-            updated.tax = tax;
-            updated.total = amount + tax;
-        }
-        setSelectedInvoice(updated);
-    };
-
-    const getStatusColor = (status) => {
-        switch (status.toLowerCase()) {
-            case 'paid': return 'success';
-            case 'pending': return 'warning';
-            case 'overdue': return 'error';
-            default: return 'default';
-        }
-    };
-
-    const filteredInvoices = invoices.filter(invoice => {
-        if (filter === 'ALL') return true;
-        return invoice.status.toUpperCase() === filter;
-    });
 
     return (
         <Layout>
             <Box sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                     <Typography variant="h5">Invoices</Typography>
-                    {userRole !== 'c' && (
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <TextField
-                                select size="small" value={filter}
-                                onChange={(e) => setFilter(e.target.value)}
-                                sx={{ minWidth: 150 }}
-                            >
-                                <MenuItem value="ALL">All Invoices</MenuItem>
-                                <MenuItem value="PAID">Paid</MenuItem>
-                                <MenuItem value="PENDING">Pending</MenuItem>
-                                <MenuItem value="OVERDUE">Overdue</MenuItem>
-                            </TextField>
+                    {userRole === 'm' && (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<AddIcon />}
+                            onClick={handleOpenDialog}
+                        >
+                            New Invoice
+                        </Button>) && (
                             <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<AddIcon />}
-                                onClick={() => handleOpenDialog(null, 'create')}
-                            >
-                                New Invoice
-                            </Button>
-                        </Box>
+                        variant="outlined"
+                        color="secondary"
+                        onClick={() => setOpenReportDialog(true)}
+                    >
+                        Generate Financial Report
+                    </Button>
                     )}
                 </Box>
 
@@ -234,44 +159,34 @@ const InvoiceList = () => {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Invoice ID</TableCell>
-                                    <TableCell>Client</TableCell>
+                                    <TableCell>Project</TableCell>
+                                    <TableCell>Client ID</TableCell>
                                     <TableCell align="right">Amount</TableCell>
-                                    <TableCell align="right">Tax</TableCell>
-                                    <TableCell align="right">Total</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Due Date</TableCell>
-                                    <TableCell>Actions</TableCell>
+                                    <TableCell>Created At</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {filteredInvoices.length === 0 ? (
+                                {invoices.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center">No invoices found</TableCell>
+                                        <TableCell colSpan={4} align="center">No invoices found</TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredInvoices.map((invoice) => (
-                                        <TableRow key={invoice.id}>
-                                            <TableCell>{invoice.id}</TableCell>
-                                            <TableCell>{invoice.clientName}</TableCell>
-                                            <TableCell align="right">${invoice.amount.toFixed(2)}</TableCell>
-                                            <TableCell align="right">${invoice.tax.toFixed(2)}</TableCell>
-                                            <TableCell align="right">${invoice.total.toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                <Chip label={invoice.status} color={getStatusColor(invoice.status)} size="small" />
-                                            </TableCell>
-                                            <TableCell>{invoice.dueDate}</TableCell>
-                                            <TableCell>
-                                                <Button size="small" startIcon={<VisibilityIcon />} onClick={() => handleOpenDialog(invoice, 'view')}>View</Button>
-                                                {userRole !== 'c' && (
-                                                    <>
-                                                        <Button size="small" startIcon={<EditIcon />} onClick={() => handleOpenDialog(invoice, 'edit')}>Edit</Button>
-                                                        <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDelete(invoice.id)}>Delete</Button>
-                                                    </>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    invoices.map((invoice) => {
+                                        const project = managerProjects.find(p => p.id === invoice.projectId);
+                                        const projectName = project ? project.title : invoice.projectId;
+
+                                        const client = clients.find(c => c.id === invoice.clientId);
+                                        const clientName = client ? `${client.name} ${client.surname}` : '—';
+
+                                        return (
+                                            <TableRow key={invoice.id}>
+                                                <TableCell>{projectName}</TableCell>
+                                                <TableCell>{clientName}</TableCell>
+                                                <TableCell align="right">${invoice.amount?.toFixed(2)}</TableCell>
+                                                <TableCell>{invoice.createdAt?.split('T')[0]}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>
@@ -279,29 +194,91 @@ const InvoiceList = () => {
                 )}
 
                 <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-                    <DialogTitle>
-                        {dialogMode === 'view' ? 'Invoice Details' :
-                            dialogMode === 'edit' ? 'Edit Invoice' : 'Create Invoice'}
-                    </DialogTitle>
+                    <DialogTitle>Create Invoice</DialogTitle>
                     <DialogContent>
                         <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField label="Client" value={selectedInvoice?.clientName || ''} disabled={dialogMode === 'view'} />
-                            <TextField label="Amount" type="number" value={selectedInvoice?.amount || ''} onChange={(e) => handleInputChange('amount', e.target.value)} disabled={dialogMode === 'view'} />
-                            <TextField label="Tax" type="number" value={selectedInvoice?.tax || ''} disabled />
-                            <TextField label="Total" type="number" value={selectedInvoice?.total || ''} disabled />
-                            <TextField select label="Status" value={selectedInvoice?.status || ''} onChange={(e) => handleInputChange('status', e.target.value)} disabled={dialogMode === 'view'}>
-                                <MenuItem value="Paid">Paid</MenuItem>
-                                <MenuItem value="Pending">Pending</MenuItem>
-                                <MenuItem value="Overdue">Overdue</MenuItem>
+                            <TextField
+                                select
+                                label="Project"
+                                value={selectedInvoice?.projectId || ''}
+                                onChange={(e) => setSelectedInvoice(prev => ({ ...prev, projectId: e.target.value }))}
+                            >
+                                {managerProjects.map((proj) => (
+                                    <MenuItem key={proj.id} value={proj.id}>
+                                        {proj.title}
+                                    </MenuItem>
+                                ))}
                             </TextField>
-                            <TextField label="Due Date" type="date" value={selectedInvoice?.dueDate || ''} onChange={(e) => handleInputChange('dueDate', e.target.value)} disabled={dialogMode === 'view'} InputLabelProps={{ shrink: true }} />
+                            <TextField
+                                label="Amount"
+                                type="number"
+                                value={selectedInvoice?.amount || ''}
+                                onChange={(e) => setSelectedInvoice(prev => ({ ...prev, amount: e.target.value }))}
+                            />
                         </Box>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={handleCloseDialog}>{dialogMode === 'view' ? 'Close' : 'Cancel'}</Button>
-                        {dialogMode !== 'view' && (
-                            <Button onClick={handleSave} variant="contained" color="primary">Save</Button>
-                        )}
+                        <Button onClick={handleCloseDialog}>Cancel</Button>
+                        <Button onClick={handleSave} variant="contained" color="primary">Save</Button>
+                    </DialogActions>
+                </Dialog>
+                <Dialog open={openReportDialog} onClose={() => setOpenReportDialog(false)} maxWidth="sm" fullWidth>
+                    <DialogTitle>Generate Financial Report</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                label="Start Date"
+                                type="date"
+                                InputLabelProps={{ shrink: true }}
+                                value={reportStartDate}
+                                onChange={(e) => setReportStartDate(e.target.value)}
+                            />
+                            <TextField
+                                label="End Date"
+                                type="date"
+                                InputLabelProps={{ shrink: true }}
+                                value={reportEndDate}
+                                onChange={(e) => setReportEndDate(e.target.value)}
+                            />
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setOpenReportDialog(false)}>Cancel</Button>
+                        <Button
+                            onClick={async () => {
+                                try {
+                                    if (!reportStartDate || !reportEndDate) {
+                                        alert("Please select both dates.");
+                                        return;
+                                    }
+
+                                    const response = await axios.get(`http://localhost:8080/api/invoices/report`, {
+                                        ...getAuthHeader(),
+                                        params: {
+                                            startDate: reportStartDate,
+                                            endDate: reportEndDate
+                                        }
+                                    });
+
+                                    const blob = new Blob([response.data], { type: "application/pdf" });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.download = `financial-report-${reportStartDate}_to_${reportEndDate}.pdf`;
+                                    link.click();
+
+                                } catch (err) {
+                                    console.error("Failed to generate report:", err);
+                                    alert("Error generating report.");
+                                } finally {
+                                    setOpenReportDialog(false);
+                                }
+                            }}
+                            variant="contained"
+                            color="primary"
+                        >
+                            Generate
+                        </Button>
                     </DialogActions>
                 </Dialog>
             </Box>

@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import {
     MDBBtn,
     MDBCol,
-    MDBContainer, MDBInput,
+    MDBContainer,
+    MDBInput,
     MDBModal,
     MDBModalBody,
     MDBModalContent,
     MDBModalDialog,
-    MDBRow,
-    MDBSpinner
+    MDBRow
 } from "mdb-react-ui-kit";
 import Layout from './components/Layout';
 import './dash.css';
@@ -18,6 +18,7 @@ const UserSettings = () => {
     const [userData, setUserData] = useState(null);
     const [formData, setFormData] = useState({});
     const [status, setStatus] = useState("");
+    const [calendarStatus, setCalendarStatus] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -43,6 +44,12 @@ const UserSettings = () => {
         };
 
         fetchUserData();
+
+        // ✅ Check for Google Calendar connection success
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("calendar") === "success") {
+            setCalendarStatus("✅ Google Calendar connected successfully.");
+        }
     }, []);
 
     const handleChange = (e) => {
@@ -84,6 +91,10 @@ const UserSettings = () => {
             console.error(err);
             setStatus("⚠️ An error occurred while updating.");
         }
+    };
+
+    const handleConnectGoogle = () => {
+        window.location.href = "http://localhost:8080/google/auth";
     };
 
     if (!userData) return <Layout><div style={{ padding: '25px' }}>Loading user data...</div></Layout>;
@@ -142,6 +153,24 @@ const UserSettings = () => {
                                         Save
                                     </MDBBtn>
                                 </form>
+
+                                {/* ✅ Google Calendar Connect Button */}
+                                <MDBBtn
+                                    className="w-100 mb-2"
+                                    color="info"
+                                    size="lg"
+                                    style={{ textTransform: 'none', borderRadius: '25px' }}
+                                    onClick={handleConnectGoogle}
+                                >
+                                    Connect to Google Calendar
+                                </MDBBtn>
+
+                                {/* ✅ Calendar connection success message */}
+                                {calendarStatus && (
+                                    <p className="text-success text-center mt-2">{calendarStatus}</p>
+                                )}
+
+                                {/* Save status */}
                                 <p className="text-center">{status}</p>
                             </div>
                         </div>

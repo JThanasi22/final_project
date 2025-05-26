@@ -1,268 +1,423 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+import axios from "axios";
 import Layout from '../Layout';
-import {
-    Typography,
-    TextField,
-    MenuItem,
-    Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Box,
-    CircularProgress,
-    Alert,
-    LinearProgress
-} from '@mui/material';
-import '../../dash.css';
+import "../../dash.css";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 const StaffProjectList = () => {
-    const [projects, setProjects] = useState([]);
+    const [userId, setUserId] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+    const [pendingProjects, setPendingProjects] = useState([]);
+    const [activeProjects, setActiveProjects] = useState([]);
+    const [finishedProjects, setFinishedProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [dialogMode, setDialogMode] = useState(null);
-    const [newProject, setNewProject] = useState({
-        title: '',
-        description: '',
-        requirements: '',
-        endDate: '',
-        price: '',
-        type: ''
-    });
     const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
-    const [error, setError] = useState('');
+    const [closing, setClosing] = useState(false);
+    const [selectedProjectForAssign, setSelectedProjectForAssign] = useState(null);
+    const [photographers, setPhotographers] = useState([]);
+    const [editors, setEditors] = useState([]);
+    const [selectedPhotographers, setSelectedPhotographers] = useState([]);
+    const [selectedEditors, setSelectedEditors] = useState([]);
+    const [assignedPrice, setAssignedPrice] = useState("");
+    const [selectedStage, setSelectedStage] = useState(null);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState([]);
 
     useEffect(() => {
-        fetchAllProjects();
+        const token = localStorage.getItem("token");
+        if (token) {
+            const decoded = jwtDecode(token);
+            setUserId(decoded.id);
+            setUserRole(decoded.role);
+        }
     }, []);
 
-    const fetchAllProjects = async () => {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        const headers = {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const fetchAll = async () => {
+            try {
+                const headers = { Authorization: `Bearer ${token}` };
+                let pendingRes = { data: [] };
+
+                if (userRole === "m") {
+                    pendingRes = await axios.get("/api/pending-projects", { headers });
+                    const [activeRes, finishedRes] = await Promise.all([
+                        axios.get("/api/pending-projects/active", { headers }),
+                        axios.get("/api/pending-projects/all-finished", { headers })
+                    ]);
+                    setPendingProjects(pendingRes.data);
+                    setActiveProjects(activeRes.data);
+                    setFinishedProjects(finishedRes.data);
+                } else if (userRole === "p" || userRole === "e") {
+                    const [activeRes, finishedRes] = await Promise.all([
+                        axios.get("/api/my-active-projects", { headers }),
+                        axios.get("/api/finished_projects", { headers })
+                    ]);
+                    setActiveProjects(activeRes.data);
+                    setFinishedProjects(finishedRes.data);
+                }
+            } catch (error) {
+                console.error("Error fetching projects:", error);
+            } finally {
+                setLoading(false);
+            }
         };
 
-        try {
-            const [pendingRes, activeRes, finishedRes] = await Promise.all([
-                fetch('http://localhost:8080/api/staff-projects/pending', { headers }),
-                fetch('http://localhost:8080/api/staff-projects/active', { headers }),
-                fetch('http://localhost:8080/api/staff-projects/finished', { headers })
-            ]);
+        if (userRole) fetchAll();
+    }, [userRole]);
 
-            if (!pendingRes.ok || !activeRes.ok || !finishedRes.ok) {
-                throw new Error('Failed to fetch projects.');
+    useEffect(() => {
+        if (selectedProjectForAssign) {
+            const token = localStorage.getItem("token");
+            const fetchUsers = async () => {
+                try {
+                    const res = await axios.get("/api/users", {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const allUsers = res.data;
+                    setPhotographers(allUsers.filter(user => user.role === "p"));
+                    setEditors(allUsers.filter(user => user.role === "e"));
+                } catch (error) {
+                    console.error("Error fetching users:", error);
+                }
+            };
+            fetchUsers();
+        }
+    }, [selectedProjectForAssign]);
+
+    const handleProjectClick = (project, title) => {
+        if (title === "Pending" && userRole !== "m") return;
+        setSelectedProject(project);
+        if (project.state === 1) setSelectedStage("photographing");
+        else if (project.state === 2) setSelectedStage("editing");
+        else setSelectedStage(null);
+    };
+
+    const handleCloseModal = () => {
+        setClosing(true);
+        setTimeout(() => {
+            setSelectedProject(null);
+            setClosing(false);
+        }, 300);
+    };
+
+    const handleDecline = async (projectId) => {
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete(`/api/pending-projects/${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setPendingProjects(prev => prev.filter(p => p.id !== projectId));
+            setSelectedProject(null);
+        } catch (error) {
+            console.error("Failed to delete project:", error);
+        }
+    };
+
+    const activateProject = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const priceInCents = Math.round(parseFloat(assignedPrice) * 100);
+            if (isNaN(priceInCents)) return alert("Invalid price");
+            console.log("📤 Sending managerId:", userId);
+
+            await axios.post("/api/active_projects", {
+                projectId: selectedProjectForAssign.id,
+                photographers: selectedPhotographers,
+                editors: selectedEditors,
+                price: priceInCents,
+                managerId: userId,
+
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            alert("Payment request sent!");
+            setSelectedProjectForAssign(null);
+            window.location.reload();
+        } catch (err) {
+            console.error("Activation error", err);
+        }
+    };
+
+    const handleFinishProject = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            if (userRole === "p") {
+                await axios.put("/api/active_projects", {
+                    id: selectedProject.id,
+                    state: 2
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                alert("Project moved to Editing stage.");
+            } else if (userRole === "e") {
+                // Editor finishes -> mark project as finished
+                await axios.post(
+                    `/api/finished_projects`,
+                    null,
+                    {
+                        params: { projectId: selectedProject.id },
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
+                alert("Project marked as finished.");
             }
 
-            const pending = await pendingRes.json();
-            const active = await activeRes.json();
-            const finished = await finishedRes.json();
-
-            const all = [...pending, ...active, ...finished];
-            all.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-            setProjects(all);
+            handleCloseModal();
+            window.location.reload();
         } catch (err) {
-            console.error(err);
-            setError('Failed to load projects.');
-        } finally {
-            setLoading(false);
+            console.error("Finish error", err);
+            alert("Failed to finish project.");
         }
     };
 
 
-    const getStatusLabel = (project) => {
-        if (project.status === 'finished') return 'Finished';
-        if (project.state === 0) return 'Awaiting Payment';
-        if (project.state === 1) return 'Photographing';
-        if (project.state === 2) return 'Editing';
-        return 'Pending';
-    };
-
-    const getStatusColor = (project) => {
-        if (project.status === 'finished') return '#5cb85c'; // green
-        if (project.state === 1) return '#f0ad4e'; // orange
-        if (project.state === 2) return '#5bc0de'; // blue
-        return '#f28b82'; // light red for pending
-    };
-
-    const finishedCount = projects.filter(p => p.status === 'finished').length;
-    const progress = projects.length ? (finishedCount / projects.length) * 100 : 0;
-
-    const handleOpenDialog = (project, mode) => {
-        if (mode === 'view') setSelectedProject(project);
-        setDialogMode(mode);
-        setDialogOpen(true);
-    };
-
-    const handleCloseDialog = () => {
-        setDialogOpen(false);
-        setSelectedProject(null);
-        setDialogMode(null);
-        setNewProject({
-            title: '',
-            description: '',
-            requirements: '',
-            endDate: '',
-            price: '',
-            type: ''
-        });
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewProject(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleCreateProject = async () => {
-        setCreating(true);
+    const handleCallBack = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/projects', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(newProject)
+            const token = localStorage.getItem("token");
+            await axios.put("/api/active_projects/callback", {
+                id: selectedProject.id
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-            if (!response.ok) throw new Error('Failed to create project');
 
-            await fetchAllProjects();
-            handleCloseDialog();
+            alert("Project sent back to photographing.");
+            handleCloseModal();
+            window.location.reload();
         } catch (err) {
-            setError(err.message);
-        } finally {
-            setCreating(false);
+            console.error("Callback error", err);
         }
     };
+
+    const handleDownloadPhotos = async () => {
+        const token = localStorage.getItem("token");
+        try {
+            const response = await axios.get("/api/active_projects/download_media", {
+                params: { projectId: selectedProject.id },
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const mediaFiles = response.data;
+
+            const zip = new JSZip();
+            mediaFiles.forEach(media => {
+                const base64 = media.content.split(",").pop(); // Strip prefix
+                zip.file(media.fileName, base64, { base64: true });
+            });
+
+            const blob = await zip.generateAsync({ type: "blob" });
+            saveAs(blob, `${selectedProject.title || "media"}.zip`);
+        } catch (error) {
+            console.error("❌ Download error:", error);
+            alert("Failed to download media.");
+        }
+    };
+
+    const handleFileUpload = async () => {
+        if (!selectedFiles.length) return alert("Select files.");
+
+        const formData = new FormData();
+        selectedFiles.forEach(file => formData.append("files", file));
+        formData.append("projectId", selectedProject.id);
+
+        try {
+            const token = localStorage.getItem("token");
+            await axios.post("/api/upload_media", formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+            alert("Upload successful");
+            setShowUploadModal(false);
+        } catch (err) {
+            console.error("Upload error", err);
+        }
+    };
+
+    const renderProjectList = (title, projects, color) => (
+        <div className="projects-card-row">
+            <div className="card-header"><h3>{title} Projects</h3></div>
+            {loading ? <p>Loading...</p> :
+                projects.length === 0 ? <p>No projects.</p> :
+                    <div className="project-list">
+                        {projects.map(project => (
+                            <div key={project.id} className="project-item"
+                                 onClick={() => handleProjectClick(project, title)}
+                                 style={{ cursor: title === "Pending" && userRole !== "m" ? "not-allowed" : "pointer" }}>
+                                <div className="project-info">
+                                    <h4>{project.title}</h4>
+                                    <div className="client-info">
+                                        <span className="client-name">{project.type}</span>
+                                        <span className="project-date">{project.endDate}</span>
+                                    </div>
+                                </div>
+                                <div className="project-status" style={{ backgroundColor: color }}>
+                                    {project.state === -1 ? "Pending" : project.state === 0 ? "Awaiting Payment" : title}
+                                </div>
+                            </div>
+                        ))}
+                    </div>}
+        </div>
+    );
 
     return (
         <Layout>
-            <div className="dashboard-content">
-                <div className="content-section left-section">
-                    <div className="projects-card">
-                        <div className="card-header">
-                            <h3>Your Projects</h3>
-                            <Button className="accept-btn" onClick={() => handleOpenDialog(null, 'create')}>New Project</Button>
-                        </div>
+            <div className="dashboard-content-row">
+                {userRole === "m" && renderProjectList("Pending", pendingProjects, "#f0ad4e")}
+                {renderProjectList("Photographing", activeProjects.filter(p => p.state === 1), "#4a6fdc")}
+                {renderProjectList("Editing", activeProjects.filter(p => p.state === 2), "#5bc0de")}
+                {renderProjectList("Delivered", finishedProjects, "#5cb85c")}
+            </div>
 
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                                Completion Progress: {Math.round(progress)}%
-                            </Typography>
-                            <LinearProgress variant="determinate" value={progress} />
-                        </Box>
+            {selectedProject && (
+                <div className="modal-overlay" onClick={handleCloseModal}>
+                    <div className={`modal-content ${closing ? "closing" : ""}`} onClick={e => e.stopPropagation()}>
+                        <button className="close-btn" onClick={handleCloseModal}>×</button>
+                        <h2>{selectedProject.title}</h2>
+                        <p><strong>Type:</strong> {selectedProject.type}</p>
+                        <p><strong>Description:</strong> {selectedProject.description}</p>
+                        <p><strong>Requirements:</strong> {selectedProject.requirements}</p>
+                        <p><strong>Price:</strong> ${selectedProject.price / 100}</p>
+                        <p><strong>Start Date:</strong> {selectedProject.creationDate}</p>
+                        <p><strong>End Date:</strong> {selectedProject.endDate}</p>
+                        {selectedProject.photographers && selectedProject.photographers.length > 0 && (
+                            <p><strong>Photographers:</strong> {selectedProject.photographers.join(", ")}</p>
+                        )}
+                        {selectedProject.editors && selectedProject.editors.length > 0 && (
+                            <p><strong>Editors:</strong> {selectedProject.editors.join(", ")}</p>
+                        )}
 
-                        {loading ? (
-                            <p>Loading...</p>
-                        ) : error ? (
-                            <Alert severity="error">{error}</Alert>
-                        ) : projects.length === 0 ? (
-                            <p>No projects found.</p>
-                        ) : (
-                            <div className="project-list">
-                                {projects.map(project => (
-                                    <div
-                                        key={project.id}
-                                        className="project-item"
-                                        onClick={() => handleOpenDialog(project, 'view')}
-                                    >
-                                        <div className="project-info">
-                                            <h4>{project.title}</h4>
-                                            <div className="client-info">
-                                                <span className="client-name">{project.type}</span>
-                                                <span className="project-date">{project.endDate}</span>
-                                            </div>
-                                            <p>{project.description}</p>
-                                        </div>
-                                        <div className="project-status" style={{ backgroundColor: getStatusColor(project) }}>
-                                            {getStatusLabel(project)}
-                                        </div>
-                                    </div>
-                                ))}
+                        {userRole === "m" && pendingProjects.some(p => p.id === selectedProject.id) && (
+                            <div className="modal-actions">
+                                <button className="accept-btn" onClick={() => {
+                                    setSelectedProject(null);
+                                    setSelectedProjectForAssign(selectedProject);
+                                }}>Accept</button>
+                                <button className="decline-btn" onClick={() => handleDecline(selectedProject.id)}>Decline</button>
+                            </div>
+                        )}
+
+                        {userRole === "p" && selectedStage === "photographing" && (
+                            <div className="modal-actions">
+                                <button className="finish-btn" onClick={handleFinishProject}>Finish</button>
+                                <button className="accept-btn" onClick={() => setShowUploadModal(true)}>Upload Media</button>
+                            </div>
+                        )}
+
+                        {userRole === "e" && selectedStage === "editing" && (
+                            <div className="modal-actions">
+                                <button className="accept-btn" onClick={handleDownloadPhotos}>
+                                    Download Photos
+                                </button>
+                                <button className="accept-btn" onClick={() => setShowUploadModal(true)}>
+                                    Upload Media
+                                </button>
+                                <button className="finish-btn" onClick={handleFinishProject}>
+                                    Finish
+                                </button>
+                            </div>
+                        )}
+
+                        {userRole === "p" && selectedStage === "editing" && (
+                            <div className="modal-actions">
+                                <button className="decline-btn" onClick={handleCallBack}>Call Back</button>
                             </div>
                         )}
                     </div>
                 </div>
+            )}
 
-                <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-                    <DialogTitle>
-                        {dialogMode === 'view' ? 'Project Details' : 'Create New Project'}
-                    </DialogTitle>
-                    <DialogContent>
-                        <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <TextField
-                                label="Title"
-                                name="title"
-                                value={dialogMode === 'create' ? newProject.title : selectedProject?.title || ''}
-                                onChange={handleInputChange}
-                                fullWidth
-                                disabled={dialogMode === 'view'}
-                            />
-                            <TextField
-                                label="Description"
-                                name="description"
-                                value={dialogMode === 'create' ? newProject.description : selectedProject?.description || ''}
-                                onChange={handleInputChange}
-                                fullWidth
-                                disabled={dialogMode === 'view'}
-                                multiline
-                                rows={3}
-                            />
-                            <TextField
-                                label="Requirements"
-                                name="requirements"
-                                value={dialogMode === 'create' ? newProject.requirements : selectedProject?.requirements || ''}
-                                onChange={handleInputChange}
-                                fullWidth
-                                disabled={dialogMode === 'view'}
-                            />
-                            <TextField
-                                select
-                                label="Type"
-                                name="type"
-                                value={dialogMode === 'create' ? newProject.type : selectedProject?.type || ''}
-                                onChange={handleInputChange}
-                                fullWidth
-                                disabled={dialogMode === 'view'}
-                            >
-                                <MenuItem value="Wedding">Wedding</MenuItem>
-                                <MenuItem value="Corporate Event">Corporate Event</MenuItem>
-                                <MenuItem value="Product Photography">Product Photography</MenuItem>
-                                <MenuItem value="Portrait">Portrait</MenuItem>
-                                <MenuItem value="Other">Other</MenuItem>
-                            </TextField>
-                            <TextField
-                                type="date"
-                                label="End Date"
-                                name="endDate"
-                                value={dialogMode === 'create' ? newProject.endDate : selectedProject?.endDate || ''}
-                                onChange={handleInputChange}
-                                InputLabelProps={{ shrink: true }}
-                                fullWidth
-                                disabled={dialogMode === 'view'}
-                            />
-                            {dialogMode === 'view' && (
-                                <>
-                                    <TextField label="Status" value={getStatusLabel(selectedProject)} fullWidth disabled />
-                                    <TextField label="Price" value={selectedProject?.price || 'Not Set'} fullWidth disabled />
-                                    <TextField label="Creation Date" value={selectedProject?.creationDate || 'N/A'} fullWidth disabled />
-                                </>
-                            )}
-                        </Box>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleCloseDialog}>Close</Button>
-                        {dialogMode === 'create' && (
-                            <Button onClick={handleCreateProject} variant="contained" color="primary" disabled={creating}>
-                                {creating ? <CircularProgress size={20} /> : 'Create'}
-                            </Button>
-                        )}
-                    </DialogActions>
-                </Dialog>
-            </div>
+            {selectedProjectForAssign && (
+                <div className="modal-overlay" onClick={() => setSelectedProjectForAssign(null)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="close-btn" onClick={() => setSelectedProjectForAssign(null)}>×</button>
+                        <h2>Assign Staff</h2>
+                        <div className="assign-section">
+                            <div className="staff-group">
+                                <h3 className="staff-heading">Select Photographers</h3>
+                                <div className="staff-list">
+                                    {photographers.map(user => (
+                                        <div key={user.id} className={`staff-card ${selectedPhotographers.includes(user.id) ? "selected" : ""}`}>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedPhotographers.includes(user.id)}
+                                                    onChange={() =>
+                                                        setSelectedPhotographers(prev =>
+                                                            prev.includes(user.id)
+                                                                ? prev.filter(id => id !== user.id)
+                                                                : [...prev, user.id])}
+                                                />
+                                                <div className="staff-info">
+                                                    <strong>{user.name}</strong>
+                                                    <p>{user.email}</p>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="staff-group">
+                                <h3 className="staff-heading">Select Editors</h3>
+                                <div className="staff-list">
+                                    {editors.map(user => (
+                                        <div key={user.id} className={`staff-card ${selectedEditors.includes(user.id) ? "selected" : ""}`}>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedEditors.includes(user.id)}
+                                                    onChange={() =>
+                                                        setSelectedEditors(prev =>
+                                                            prev.includes(user.id)
+                                                                ? prev.filter(id => id !== user.id)
+                                                                : [...prev, user.id])}
+                                                />
+                                                <div className="staff-info">
+                                                    <strong>{user.name}</strong>
+                                                    <p>{user.email}</p>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="assign-footer">
+                                <input
+                                    type="text"
+                                    value={assignedPrice ? `${assignedPrice}` : ""}
+                                    onChange={e => {
+                                        const raw = e.target.value.replace(/\$/g, "").trim();
+                                        setAssignedPrice(raw);
+                                    }}
+                                    placeholder="Price"
+                                    className="price-input"
+                                />
+                                <button className="accept-btn" onClick={() => activateProject(selectedProjectForAssign, selectedPhotographers, selectedEditors, assignedPrice)}>Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showUploadModal && (
+                <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="close-btn" onClick={() => setShowUploadModal(false)}>×</button>
+                        <h2>Upload Media</h2>
+                        <input type="file" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files))} />
+                        <div className="modal-actions">
+                            <button className="accept-btn" onClick={handleFileUpload}>Upload</button>
+                            <button className="decline-btn" onClick={() => setShowUploadModal(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 };
