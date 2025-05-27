@@ -996,3 +996,30 @@
   color: #777;
   font-size: 0.85rem;
 }
+
+/* ── Stack project details in a column ───────────────────────── */
+.projects-card-row .project-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  padding: 16px !important;
+}
+
+.projects-card-row .project-item .project-info,
+.projects-card-row .project-item .project-status {
+  width: 100% !important;
+}
+
+.projects-card-row .project-item .project-info h4 {
+  margin-bottom: 6px;
+}
+
+.projects-card-row .project-item .client-info,
+.projects-card-row .project-item .project-date {
+  margin-bottom: 6px;
+}
+
+.projects-card-row .project-item .project-status {
+  margin-top: 8px;
+  align-self: flex-start;
+}

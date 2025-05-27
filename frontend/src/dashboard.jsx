@@ -159,17 +159,41 @@ export default function Dashboard() {
       console.error('fetchMeetingEvents failed:', e);
     }
   };
-;
 
   // ── When user clicks a date ──────────────────────
-  const handleDateClick = info => {
+
+  const handleDateClick = async info => {
     const ds = info.dateStr;
     setSelectedDateStr(ds);
-    // combine meetings + projects
-    const all = [ ...calendarEvents, ...projectEvents ];
+
+    const token   = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    try {
+      // 1) ask the server if fully booked
+      const { data } = await axios.get(
+          `${API_URL}/api/meetings/availability`,
+          { params: { date: ds }, headers }
+      );
+
+      if (data.fullyBooked) {
+        // 2a) if ≥3 accepted → show “fully booked”
+        setAvailabilityMessage(`❌ ${ds} is fully booked.`);
+        setEventsForDate([]);
+        return;
+      }
+
+      // 2b) otherwise, render all events & show the request buttons
+      const all = [ ...calendarEvents, ...projectEvents ];
       setEventsForDate(all.filter(ev => ev.date === ds));
       setAvailabilityMessage('');
-    };
+    } catch (err) {
+      console.error('availability check failed', err);
+      setAvailabilityMessage(
+          `⚠️ Could not check availability for ${ds}.`
+      );
+    }
+  };
 
   // ── On “Yes”: POST & refresh ──────────────────────
   const requestMeeting = async () => {

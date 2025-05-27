@@ -1685,4 +1685,23 @@ public class FirestoreService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Return all meetings on meetingDate whose status == "accepted"
+     */
+    public List<Meeting> getAcceptedMeetingsByDate(String meetingDate)
+            throws ExecutionException, InterruptedException {
+        QuerySnapshot snap = db.collection("meetings")
+                .whereEqualTo("meetingDate", meetingDate)
+                .whereEqualTo("status", "accepted")
+                .get()
+                .get();
+        return snap.toObjects(Meeting.class);
+    }
+
+    public void rescheduleMeeting(String meetingId, String newDate)
+            throws ExecutionException, InterruptedException {
+        DocumentReference ref = db.collection("meetings").document(meetingId);
+        ref.update("meetingDate", newDate).get();
+    }
+
 }

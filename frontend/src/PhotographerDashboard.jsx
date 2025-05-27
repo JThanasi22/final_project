@@ -62,6 +62,46 @@ export default function PhotographerDashboard() {
         fetchTaskEvents(token);
     }, [navigate]);
 
+    // helper to format a Date as YYYY-MM-DD
+    function formatYMD(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // ── POPUP FOR DUE-SOON ITEMS EVERY 12H ─────────────────
+    useEffect(() => {
+        const checkDue = () => {
+            const now    = Date.now();
+            const last   = +localStorage.getItem('lastDueAlertPhotog') || 0;
+            const window = 12 * 60 * 60 * 1000;
+            if (now - last < window) return;  // already ran in this 12h block
+
+            const today = new Date();
+            const t0Str = formatYMD(today);
+            const tmrw  = new Date(today); tmrw.setDate(today.getDate() + 1);
+            const day2  = new Date(today); day2.setDate(today.getDate() + 2);
+            const t1Str = formatYMD(tmrw);
+            const t2Str = formatYMD(day2);
+
+            // now include today as well
+            const due = calendarEvents.filter(ev =>
+                [t0Str, t1Str, t2Str].includes(ev.date)
+            );
+
+            if (due.length) {
+                const list = due.map(ev => `• ${ev.title} on ${ev.date}`).join('\n');
+                alert(`⚠️ Time is running out on these items:\n\n${list}`);
+                localStorage.setItem('lastDueAlertPhotog', String(now));
+            }
+        };
+
+        checkDue();
+        const id = setInterval(checkDue, 12 * 60 * 60 * 1000);
+        return () => clearInterval(id);
+    }, [calendarEvents]);
+
     const fetchNotifications = async (token) => {
         try {
             const res = await axios.get(`${API_URL}/api/notifications`, { headers: { Authorization: `Bearer ${token}` } });

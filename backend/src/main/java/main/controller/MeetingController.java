@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/meetings")
@@ -103,6 +105,39 @@ public class MeetingController {
 
         List<Meeting> mine = firestore.getMeetingsForUser(clientId);
         return ResponseEntity.ok(mine);
+    }
+
+    @GetMapping("/availability")
+    public ResponseEntity<Map<String,Object>> checkAvailability(
+            @RequestParam("date") String meetingDate
+    ) throws Exception {
+        List<Meeting> accepted =
+                firestore.getAcceptedMeetingsByDate(meetingDate);
+        int count = accepted.size();
+        boolean fullyBooked = count >= 3;
+
+        Map<String,Object> resp = new HashMap<>();
+        resp.put("acceptedCount", count);
+        resp.put("fullyBooked",    fullyBooked);
+        return ResponseEntity.ok(resp);
+    }
+
+    @PutMapping("/{id}/reschedule")
+    public ResponseEntity<Void> reschedule(
+            @PathVariable String id,
+            @RequestParam("newDate") String newDate
+    ) throws Exception {
+        Meeting old = firestore.getMeetingById(id);
+        firestore.rescheduleMeeting(id, newDate);
+
+        String msg = String.format(
+                "Your meeting on %s has been moved to %s",
+                old.getMeetingDate(), newDate
+        );
+        firestore.sendGeneralNotification(
+                old.getUserId(), msg, "meeting_rescheduled"
+        );
+        return ResponseEntity.ok().build();
     }
 
     /**

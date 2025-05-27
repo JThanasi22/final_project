@@ -1,5 +1,3 @@
-// src/ManagerDashboard.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate }                  from 'react-router-dom';
 import axios                            from 'axios';
@@ -52,7 +50,7 @@ export default function ManagerDashboard() {
     // user + greeting
     const [userEmail, setUserEmail]         = useState('Manager');
     const [greeting,  setGreeting]          = useState('Welcome back');
-
+    const [rescheduleTrigger, setRescheduleTrigger] = useState(0);
     // left cards
     const [projects,      setProjects]      = useState([]);
     const [notifications, setNotifications] = useState([]);
@@ -93,7 +91,43 @@ export default function ManagerDashboard() {
         fetchMeetingEvents(token);
         fetchProjectEvents(token);
         fetchTaskEvents(token);       // ← NEW
-    }, [navigate]);
+    }, [navigate, rescheduleTrigger]);
+
+    // ── POPUP FOR “DUE SOON” ITEMS, EVERY 12H ─────────────────────────
+    useEffect(() => {
+        const checkDueEvents = () => {
+            const now = Date.now();
+            const last = +localStorage.getItem('lastDueAlert') || 0;
+            const twelveH = 12 * 60 * 60 * 1000;
+            if (now - last < twelveH) return;  // already ran in this window
+
+            const today = new Date();
+            const t0Str = formatYMD(today);
+            const tmrw  = new Date(today); tmrw.setDate(today.getDate() + 1);
+            const day2  = new Date(today); day2.setDate(today.getDate() + 2);
+            const t1Str = formatYMD(tmrw);
+            const t2Str = formatYMD(day2);
+
+            // now include today as well
+            const due = calendarEvents.filter(ev =>
+                [t0Str, t1Str, t2Str].includes(ev.date)
+            );
+
+            // combine all your loaded events
+            const all = [...calendarEvents, ...projectEvents, ...taskEvents];
+
+            if (due.length) {
+                const list = due.map(ev => `• ${ev.title} on ${ev.date}`).join('\n');
+                alert(`⚠️ Time is running out on these events:\n\n${list}`);
+                localStorage.setItem('lastDueAlert', String(now));
+            }
+        };
+
+        // run immediately, then every 12 hours
+        checkDueEvents();
+        const id = setInterval(checkDueEvents, 12 * 60 * 60 * 1000);
+        return () => clearInterval(id);
+    }, [calendarEvents, projectEvents, taskEvents]);
 
     // ── Fetch project cards ─────────────────────────
     const fetchProjects = async token => {
@@ -175,7 +209,29 @@ export default function ManagerDashboard() {
             console.error('fetchMeetingEvents failed:', err);
         }
     };
-;
+
+    const handleReschedule = async meetingId => {
+        const newDate = window.prompt(
+            'Enter new meeting date (YYYY-MM-DD):',
+            selectedDateStr
+        );
+        if (!newDate) return;
+
+        try {
+            const token   = localStorage.getItem('token');
+            const headers = { Authorization: `Bearer ${token}` };
+            await axios.put(
+                `${API_URL}/api/meetings/${meetingId}/reschedule`,
+                null,
+                { params: { newDate }, headers }
+            );
+            // force refetch (or you can just call fetchMeetingEvents(token))
+            setRescheduleTrigger(x => x + 1);
+        } catch (err) {
+            console.error('Reschedule failed', err);
+            alert('Could not reschedule. See console for details.');
+        }
+    };
 
     const handleDateClick = info => {
         const ds = info.dateStr;
@@ -369,17 +425,24 @@ export default function ManagerDashboard() {
                             {availabilityMessage && (
                                 <p className="avail-msg">{availabilityMessage}</p>
                             )}
-
                             {selectedDateStr && (
                                 <div className="meeting-info">
                                     <div className="events-list">
                                         <h4>Events on {selectedDateStr}:</h4>
-                                        {eventsForDate.length === 0
-                                            ? <p className="no-events">None</p>
-                                            : eventsForDate.map(ev => (
-                                                <div key={ev.id} className="event-item">{ev.title}</div>
-                                            ))
-                                        }
+                                        {eventsForDate.map(ev => (
+                                            <div key={ev.id} className="event-item">
+                                                {ev.title}
+                                                {/* only show for meetings and only to managers */}
+                                                {userRole === 'm' && ev.title.includes('Meeting') && (
+                                                    <button
+                                                        className="btn-reschedule"
+                                                        onClick={() => handleReschedule(ev.id)}
+                                                    >
+                                                        Reschedule
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
