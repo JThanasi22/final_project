@@ -850,3 +850,149 @@
   justify-content: space-between;
 }
 
+/* dash.css */
+
+/* ── Calendar wrapper ───────────────────────── */
+.calendar-wrapper {
+  background: #ffffff;
+  padding: 0.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Toolbar */
+.calendar-wrapper .fc-toolbar {
+  background: #fafafa;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0.5rem;
+}
+.calendar-wrapper .fc-button {
+  background: transparent;
+  border: none;
+  color: #007bff;
+  font-weight: 500;
+  margin: 0 0.25rem;
+}
+.calendar-wrapper .fc-button:hover {
+  background: rgba(0, 123, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* Column headers (days of week) */
+.calendar-wrapper .fc-col-header-cell {
+  background: #fafafa;
+  border: none;
+}
+.calendar-wrapper .fc-col-header-cell-cushion {
+  color: #333;
+  font-weight: 600;
+  padding: 0.25rem 0;
+}
+
+/* Day cells: remove default borders, tighten rows */
+.calendar-wrapper .fc-daygrid-day {
+  border: none;
+}
+.calendar-wrapper .fc-daygrid-body .fc-row {
+  height: 50px !important;
+}
+.calendar-wrapper .fc-daygrid-day-frame {
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+/* Center the day number */
+.calendar-wrapper .fc-daygrid-day-top {
+  display: flex;
+  justify-content: center;
+}
+.calendar-wrapper .fc-daygrid-day-number {
+  font-weight: 600;
+  color: #333;
+  line-height: 50px;
+}
+
+/* Hover effect */
+.calendar-wrapper .fc-daygrid-day:hover .fc-daygrid-day-frame {
+  background: #f5f5f5;
+}
+
+/* Highlight selected day */
+.calendar-wrapper .fc-daygrid-day.selected-day .fc-daygrid-day-frame {
+  background-color: #e0f7fa !important;
+  border-radius: 4px;
+}
+
+/* Highlight days with existing events */
+.calendar-wrapper .fc-daygrid-day.has-event .fc-daygrid-day-frame {
+  background-color: #fff4e5 !important;
+  border-radius: 4px;
+}
+
+/* Availability message */
+.avail-msg {
+  margin-top: 0.5rem;
+  color: #28a745;
+  font-weight: 500;
+}
+
+/* ── Meeting prompt ───────────────────────────── */
+.meeting-prompt {
+  background: #fff;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.meeting-prompt p {
+  color: #333;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+.meeting-prompt button {
+  margin-right: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-yes {
+  background: #28a745;
+  color: #fff;
+}
+.btn-yes:hover {
+  background: #218838;
+}
+.btn-no {
+  background: #dc3545;
+  color: #fff;
+}
+.btn-no:hover {
+  background: #c82333;
+}
+
+/* ── Events list ──────────────────────────────── */
+.events-list {
+  margin-top: 0.75rem;
+}
+.events-list h4 {
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+.event-item {
+  padding: 0.2rem 0;
+  color: #007bff;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.85rem;
+}
+.no-events {
+  color: #777;
+  font-size: 0.85rem;
+}

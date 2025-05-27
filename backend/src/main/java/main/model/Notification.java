@@ -12,6 +12,7 @@ public class Notification {
     private String status;
     private Timestamp timestamp;
     private String type;
+    private String meetingId;
 
     // Firestore sets this ID manually using doc.getId()
     public String getId() {
@@ -85,4 +86,6 @@ public class Notification {
     public void setType(String type) {
         this.type = type;
     }
+    public String getMeetingId() { return meetingId; }
+    public void setMeetingId(String meetingId) { this.meetingId = meetingId; }
 }

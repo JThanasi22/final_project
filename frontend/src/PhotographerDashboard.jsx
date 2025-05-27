@@ -1,288 +1,202 @@
-import React, { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
-import axios from "axios";
-import Layout from "./components/Layout";
-import "./dash.css";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import Layout from './components/Layout';
+import './dash.css';
 
-const PhotographerDashboard = () => {
-    const [userEmail, setUserEmail] = useState("User");
-    const [greeting, setGreeting] = useState("Welcome back");
-    const [loading, setLoading] = useState(true);
-    const [photographingProjects, setPhotographingProjects] = useState([]);
-    const [editingProjects, setEditingProjects] = useState([]);
-    const [finishedProjects, setFinishedProjects] = useState([]);
-    const [selectedProject, setSelectedProject] = useState(null);
-    const [selectedStage, setSelectedStage] = useState(null);
-    const [closing, setClosing] = useState(false);
-    const [showUploadModal, setShowUploadModal] = useState(false);
-    const [selectedFiles, setSelectedFiles] = useState([]);
+const API_URL = 'http://localhost:8080';
+
+function getStatusLabel(status, state) {
+    if (status === 'finished') return 'Finished';
+    if (state === 1)           return 'Photographing';
+    if (state === 2)           return 'Editing';
+    return 'Unknown';
+}
+
+function getStatusColor(status, state) {
+    if (status === 'finished') return '#5cb85c';
+    if (state === 1)            return '#f0ad4e';
+    if (state === 2)            return '#5bc0de';
+    return '#f28b82';
+}
+
+export default function PhotographerDashboard() {
+    const navigate = useNavigate();
+
+    const [userEmail, setUserEmail] = useState('Photographer');
+    const [greeting, setGreeting]   = useState('Welcome back');
+    const [notifications, setNotifications] = useState([]);
+    const [projects, setProjects]   = useState([]);
+
+    const [calendarEvents, setCalendarEvents] = useState([]);
+    const [selectedDateStr, setSelectedDateStr] = useState(null);
+    const [eventsForDate, setEventsForDate]     = useState([]);
+    const [availabilityMessage, setAvailabilityMessage] = useState('');
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                setUserEmail(decoded.name || decoded.sub);
-            } catch (err) {
-                console.error("Invalid token:", err);
-            }
-        }
-        fetchProjects();
-    }, []);
+        const token = localStorage.getItem('token');
+        if (!token) { navigate('/login'); return; }
 
-    const fetchProjects = async () => {
+        let decoded;
         try {
-            const token = localStorage.getItem("token");
-            const activeRes = await axios.get("/api/my-active-projects", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const allProjects = activeRes.data;
-            setPhotographingProjects(allProjects.filter((p) => p.state === 1));
-            setEditingProjects(allProjects.filter((p) => p.state === 2));
-
-            const finishedRes = await axios.get("/api/finished_projects", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setFinishedProjects(finishedRes.data);
-        } catch (error) {
-            console.error("Error fetching projects:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleProjectClick = (project, stage) => {
-        setSelectedProject(project);
-        setSelectedStage(stage);
-    };
-
-    const handleCloseModal = () => {
-        setClosing(true);
-        setTimeout(() => {
-            setSelectedProject(null);
-            setSelectedStage(null);
-            setClosing(false);
-        }, 300);
-    };
-
-    const handleCallBack = async () => {
-        const token = localStorage.getItem("token");
-        try {
-            await axios.put(
-                "/api/active_projects/callback",
-                { id: selectedProject.id },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            alert("Project sent back to photographing stage.");
-            handleCloseModal();
-            setLoading(true);
-            await fetchProjects();
-        } catch (error) {
-            console.error("Error calling back project:", error);
-            alert("Failed to send project back.");
-        }
-    };
-
-    const handleUploadMedia = () => {
-        setShowUploadModal(true);
-    };
-
-    const handleFileUpload = async () => {
-        if (!selectedFiles || selectedFiles.length === 0) {
-            alert("Please select files to upload.");
+            const [, b64] = token.split('.');
+            decoded = JSON.parse(atob(b64));
+        } catch {
+            localStorage.removeItem('token');
+            navigate('/login');
             return;
         }
+        setUserEmail(decoded.name || decoded.sub);
+        if (localStorage.getItem('justSignedUp') === 'true') {
+            setGreeting('Welcome');
+            localStorage.removeItem('justSignedUp');
+        }
 
-        const formData = new FormData();
-        selectedFiles.forEach((file) => {
-            formData.append("files", file);
-        });
-        formData.append("projectId", selectedProject.id);
+        fetchNotifications(token);
+        fetchProjects(token);
+        fetchProjectEvents(token);
+        fetchTaskEvents(token);
+    }, [navigate]);
 
+    const fetchNotifications = async (token) => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await axios.post(
-                "/api/upload_media",
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-
-            console.log("✅ Upload response:", response.data);
-            alert("Files uploaded successfully!");
-            setShowUploadModal(false);
-            setSelectedFiles([]);
-        } catch (error) {
-            console.error("❌ Upload error:", error);
-            alert("Upload failed. Please try again.");
+            const res = await axios.get(`${API_URL}/api/notifications`, { headers: { Authorization: `Bearer ${token}` } });
+            const sorted = res.data.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+            setNotifications(sorted.slice(0,4));
+        } catch (e) {
+            console.error('fetchNotifications failed:', e);
         }
     };
 
-    const handleFinishProject = async () => {
-        const confirmFinish = window.confirm("Are you sure you want to mark this project as finished and send it to editing?");
-        if (!confirmFinish) return;
-
-        const token = localStorage.getItem("token");
-
+    const markAsRead = async (id) => {
         try {
-            await axios.put(
-                "/api/active_projects",
-                {
-                    id: selectedProject.id,
-                    state: 2,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            console.log("✅ Project state updated successfully.");
-        } catch (error) {
-            console.warn("⚠️ Project updated but error occurred:", error);
+            const token = localStorage.getItem('token');
+            await axios.put(`${API_URL}/api/notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
+            fetchNotifications(token);
+        } catch (e) {
+            console.error('markAsRead failed:', e);
         }
-
-        handleCloseModal();
-        setLoading(true);
-        await fetchProjects();
     };
 
-    const renderProjectCards = (projects, stage, statusLabel, statusColor) => (
-        <div className="project-list">
-            {projects.map((p) => (
-                <div
-                    key={p.id}
-                    className="project-item"
-                    onClick={() => handleProjectClick(p, stage)}
-                    style={{ cursor: "pointer" }}
-                >
-                    <div className="project-info">
-                        <h4>{p.title}</h4>
-                        <div className="client-info">
-                            <span className="client-name">{p.type}</span>
-                            <span className="project-date">{p.endDate}</span>
-                        </div>
-                    </div>
-                    <div className="project-status" style={{ backgroundColor: statusColor }}>
-                        {statusLabel}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
+    const fetchProjects = async (token) => {
+        try {
+            const res = await axios.get(`${API_URL}/api/my-active-projects`, { headers: { Authorization: `Bearer ${token}` } });
+            const photo = res.data.filter(p => p.state === 1).slice(0,3);
+            setProjects(photo);
+        } catch (e) {
+            console.error('fetchProjects failed:', e);
+        }
+    };
+
+    const fetchProjectEvents = async (token) => {
+        try {
+            const [activeRes, finRes] = await Promise.all([
+                axios.get(`${API_URL}/api/my-active-projects`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(`${API_URL}/api/finished_projects`,   { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            const all = [...activeRes.data, ...finRes.data];
+            const evs = all.map(proj => ({ id: proj.id, title: `📂 ${proj.title} Deadline`, date: proj.endDate, color: '#3f7dd7' }));
+            setCalendarEvents(prev => [...prev, ...evs]);
+        } catch (e) {
+            console.error('fetchProjectEvents failed:', e);
+        }
+    };
+
+    const fetchTaskEvents = async (token) => {
+        try {
+            const res = await axios.get(`${API_URL}/api/tasks/assigned`, { headers: { Authorization: `Bearer ${token}` } });
+            const evs = res.data.map(task => ({ id: task.id, title: `🖊️ ${task.title} Deadline`, date: new Date(task.dueDate).toISOString().split('T')[0], color: task.status === 'Completed' ? '#6ad36e' : '#ffc107' }));
+            setCalendarEvents(prev => [...prev, ...evs]);
+        } catch (e) {
+            console.error('fetchTaskEvents failed:', e);
+        }
+    };
+
+    const handleDateClick = (info) => {
+        const ds = info.dateStr;
+
+        // 1) grab every event on that date (including dupes)
+        const eventsOnDate = calendarEvents.filter(ev => ev.date === ds);
+
+        // 2) de-duplicate by `id`
+        const uniqueEvents = Array.from(
+            eventsOnDate.reduce((map, ev) => map.set(ev.id, ev), new Map()).values()
+        );
+
+        // 3) keep only the ones you want to display (projects & tasks combined)
+        setEventsForDate(uniqueEvents);
+        setSelectedDateStr(ds);
+        setAvailabilityMessage('');
+    };
+
+    const truncateWords = (text,num=6) => {
+        const w = text.split(' ');
+        return w.length>num ? w.slice(0,num).join(' ')+'…' : text;
+    };
 
     return (
-        <>
-            <Layout>
-                <div className="dashboard-content">
-                    <div className="content-section left-section">
-                        <div className="welcome-card">
-                            <h2>{greeting}, {userEmail}!</h2>
-                            <p>Here’s your project workflow stages.</p>
-                        </div>
+        <Layout>
+            <div className="dashboard-content">
+                <div className="content-section left-section">
+                    <div className="welcome-card">
+                        <h2>{greeting}, {userEmail}!</h2>
+                        <p>Top photographing assignments.</p>
+                    </div>
 
-                        <div className="projects-card">
-                            <div className="card-header">
-                                <h3>Photographing Stage</h3>
-                            </div>
-                            {loading ? (
-                                <p>Loading...</p>
-                            ) : photographingProjects.length === 0 ? (
-                                <p>No projects in this stage.</p>
-                            ) : (
-                                renderProjectCards(photographingProjects, "photographing", "Photographing", "#f0ad4e")
-                            )}
+                    <div className="status-card">
+                        <h3>Photographing (up to 3)</h3>
+                        <div className="project-list">
+                            {projects.map(p => (
+                                <div key={p.id} className="project-item">
+                                    <div className="project-info"><h4>{p.title}</h4><span className="project-date">{p.endDate}</span></div>
+                                    <div className="project-status" style={{ backgroundColor: getStatusColor(p.status,p.state) }}>{getStatusLabel(p.status,p.state)}</div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="content-section right-section">
-                        <div className="projects-card">
-                            <div className="card-header">
-                                <h3>Editing Stage</h3>
-                            </div>
-                            {loading ? (
-                                <p>Loading...</p>
-                            ) : editingProjects.length === 0 ? (
-                                <p>No projects in this stage.</p>
-                            ) : (
-                                renderProjectCards(editingProjects, "editing", "Editing", "#4a6fdc")
-                            )}
+                    <div className="status-card">
+                        <h3>Notifications</h3>
+                        <div className="project-list">
+                            {notifications.map(n => (
+                                <div key={n.id} className="project-item" onClick={()=>markAsRead(n.id)} style={{ backgroundColor: n.status==='unread'?'#eef6ff':'transparent',cursor:'pointer'}}>
+                                    <div className="project-info"><h4>{truncateWords(n.message)}</h4><span className="project-date">{n.timestamp?.seconds?new Date(n.timestamp.seconds*1000).toLocaleDateString():'N/A'}</span></div>
+                                    <div className="project-status" style={{ backgroundColor: n.status==='unread'?'#5c9cce':'#6c757d',color:'#fff'}}>{n.status}</div>
+                                </div>
+                            ))}
                         </div>
+                    </div>
+                </div>
 
-                        <div className="projects-card delivered">
-                            <div className="card-header">
-                                <h3>Delivered</h3>
-                            </div>
-                            {loading ? (
-                                <p>Loading...</p>
-                            ) : finishedProjects.length === 0 ? (
-                                <p>No delivered projects yet.</p>
-                            ) : (
-                                renderProjectCards(finishedProjects, "finished", "Delivered", "#5cb85c")
+                <div className="content-section right-section">
+                    <div className="projects-card">
+                        <h3>Your Meetings Calendar</h3>
+                        <div className="calendar-wrapper">
+                            <FullCalendar
+                                plugins={[dayGridPlugin,timeGridPlugin,interactionPlugin]}
+                                initialView="dayGridMonth"
+                                height="auto"
+                                events={calendarEvents}
+                                dateClick={handleDateClick}
+                                headerToolbar={{ left:'prev,next today',center:'title',right:'' }}
+                            />
+
+                            {availabilityMessage && <p className="avail-msg">{availabilityMessage}</p>}
+
+                            {selectedDateStr && (
+                                <div className="meeting-info">
+                                    <h4>Events on {selectedDateStr}:</h4>
+                                    {eventsForDate.length===0? <p className="no-events">None</p> : eventsForDate.map(ev=><div key={ev.id} className="event-item">{ev.title}</div>)}
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
-            </Layout>
-
-            {selectedProject && (
-                <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className={`modal-content ${closing ? "closing" : ""}`} onClick={(e) => e.stopPropagation()}>
-                        <button className="close-btn" onClick={handleCloseModal}>×</button>
-                        <h2>{selectedProject.title}</h2>
-                        <p><strong>Type:</strong> {selectedProject.type}</p>
-                        <p><strong>Description:</strong> {selectedProject.description}</p>
-                        <p><strong>Requirements:</strong> {selectedProject.requirements}</p>
-                        <p><strong>Price:</strong> ${selectedProject.price}</p>
-                        <p><strong>Start Date:</strong> {selectedProject.creationDate}</p>
-                        <p><strong>End Date:</strong> {selectedProject.endDate}</p>
-                        {selectedProject.photographers && selectedProject.photographers.length > 0 && (
-                            <p><strong>Photographers:</strong> {selectedProject.photographers.join(", ")}</p>
-                        )}
-                        {selectedProject.editors && selectedProject.editors.length > 0 && (
-                            <p><strong>Editors:</strong> {selectedProject.editors.join(", ")}</p>
-                        )}
-
-                        {selectedStage === "photographing" && (
-                            <div className="modal-actions">
-                                <button className="finish-btn" onClick={handleFinishProject}>Finish</button>
-                                <button className="accept-btn" onClick={handleUploadMedia}>Upload Media</button>
-                            </div>
-                        )}
-
-                        {selectedStage === "editing" && (
-                            <div className="modal-actions">
-                                <button className="decline-btn" onClick={handleCallBack}>Call Back</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {showUploadModal && (
-                <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="close-btn" onClick={() => setShowUploadModal(false)}>×</button>
-                        <h2>Upload Media</h2>
-                        <input
-                            type="file"
-                            multiple
-                            onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
-                        />
-                        <div className="modal-actions">
-                            <button className="accept-btn" onClick={handleFileUpload}>Upload</button>
-                            <button className="decline-btn" onClick={() => setShowUploadModal(false)}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
+            </div>
+        </Layout>
     );
-};
-
-export default PhotographerDashboard;
+}

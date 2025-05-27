@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @Service
 public class FirestoreService {
@@ -1326,6 +1327,77 @@ public class FirestoreService {
                 .get();
     }
 
+    public void sendMeetingRequestNotifications(Meeting m) throws Exception {
+        // 1) look up the client’s User record
+        User client = getUserById(m.getUserId());
+        String fullName = (client != null)
+                ? (client.getName() + " " + client.getSurname()).trim()
+                : m.getUserId();  // fallback to ID if name lookup fails
+
+        // 2) build the human-friendly message
+        String notifyMsg = String.format(
+                "%s requested a meeting on %s",
+                fullName,
+                m.getMeetingDate()
+        );
+
+        // 3) fetch all managers
+        List<User> all = getAllUsers();
+        for (User u : all) {
+            if ("m".equals(u.getRole())) {
+                Map<String,Object> n = new HashMap<>();
+                n.put("recipientId", u.getId());
+                n.put("message",     notifyMsg);
+                n.put("type",        "meeting_request");
+                n.put("meetingId",   m.getId());
+                n.put("timestamp",   new Date());
+                n.put("status",      "unread");
+                db.collection("notifications").add(n).get();
+            }
+        }
+    }
+
+    public List<Meeting> getAllMeetings() throws Exception {
+        List<Meeting> out = new ArrayList<>();
+        QuerySnapshot snap = db.collection("meetings")
+                .get()
+                .get();
+        for (DocumentSnapshot doc : snap.getDocuments()) {
+            Meeting m = doc.toObject(Meeting.class);
+            if (m != null) {
+                m.setId(doc.getId());
+                out.add(m);
+            }
+        }
+        return out;
+    }
+
+    public void sendMeetingAcceptedNotification(Meeting m) throws Exception {
+        Map<String,Object> n = new HashMap<>();
+        n.put("recipientId", m.getUserId());
+        n.put("message",     "Your meeting on " + m.getMeetingDate() + " was accepted");
+        n.put("type",        "meeting_accepted");
+        n.put("meetingId",   m.getId());
+        n.put("timestamp",   new Date());
+        n.put("status",      "unread");
+        db.collection("notifications").add(n).get();
+    }
+
+    /**
+     * Notify the client that their meeting was rejected.
+     */
+    public void sendMeetingRejectedNotification(Meeting m) throws Exception {
+        Map<String,Object> n = new HashMap<>();
+        n.put("recipientId", m.getUserId());
+        n.put("message",     "Your meeting request for " + m.getMeetingDate() + " was rejected");
+        n.put("type",        "meeting_rejected");
+        n.put("meetingId",   m.getId());
+        n.put("timestamp",   new Date());
+        n.put("status",      "unread");
+        db.collection("notifications").add(n).get();
+    }
+
+
     public List<Map<String, Object>> getFeedbackWithReplies() throws ExecutionException, InterruptedException {
         CollectionReference ref = db.collection("feedback");
         List<QueryDocumentSnapshot> allDocs = ref.get().get().getDocuments();
@@ -1536,11 +1608,81 @@ public class FirestoreService {
         }
     }
 
+    // Meetings
 
+    public Meeting saveMeeting(Meeting m) throws Exception {
+        DocumentReference ref = db.collection("meetings").document();
+        m.setId(ref.getId());
+        ref.set(m).get();
+        return m;
+    }
 
+    /**
+     * Fetch all meetings where status == "pending"
+     */
+    public List<Meeting> getPendingMeetings() throws Exception {
+        QuerySnapshot snap = db.collection("meetings")
+                .whereEqualTo("status", "pending")
+                .get()
+                .get();
+        return snap.getDocuments().stream()
+                .map(doc -> {
+                    Meeting m = doc.toObject(Meeting.class);
+                    m.setId(doc.getId());
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
 
+    /**
+     * Lookup a single meeting by its ID
+     * (needed so you can read m.getUserId() & m.getMeetingDate())
+     */
+    public Meeting getMeetingById(String id) throws Exception {
+        DocumentSnapshot snap = db.collection("meetings").document(id).get().get();
+        if (!snap.exists()) return null;
+        Meeting m = snap.toObject(Meeting.class);
+        m.setId(snap.getId());
+        return m;
+    }
 
+    /**
+     * Update the `status` field for a meeting (e.g. "accepted")
+     */
+    public void updateMeetingStatus(String id, String newStatus) throws Exception {
+        db.collection("meetings")
+                .document(id)
+                .update("status", newStatus)
+                .get();
+    }
 
+    /**
+     * Delete a meeting document (used on reject)
+     */
+    public void deleteMeeting(String id) throws Exception {
+        db.collection("meetings")
+                .document(id)
+                .delete()
+                .get();
+    }
 
+    /**
+     * Fetch just the pending meetings for a single user.
+     */
+
+    public List<Meeting> getMeetingsForUser(String userId) throws Exception {
+        QuerySnapshot snap = db.collection("meetings")
+                .whereEqualTo("userId", userId)
+                .get()
+                .get();
+
+        return snap.getDocuments().stream()
+                .map(doc -> {
+                    Meeting m = doc.toObject(Meeting.class);
+                    m.setId(doc.getId());
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
 
 }
