@@ -13,6 +13,7 @@ const StaffProjectList = () => {
     const [activeProjects, setActiveProjects] = useState([]);
     const [finishedProjects, setFinishedProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
+    const [userMap, setUserMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [closing, setClosing] = useState(false);
     const [selectedProjectForAssign, setSelectedProjectForAssign] = useState(null);
@@ -41,7 +42,7 @@ const StaffProjectList = () => {
                 const headers = { Authorization: `Bearer ${token}` };
                 let pendingRes = { data: [] };
 
-                if (userRole === "m") {
+                if (userRole === "m" || userRole === "a") {
                     pendingRes = await axios.get("/api/pending-projects", { headers });
                     const [activeRes, finishedRes] = await Promise.all([
                         axios.get("/api/pending-projects/active", { headers }),
@@ -69,7 +70,7 @@ const StaffProjectList = () => {
     }, [userRole]);
 
     useEffect(() => {
-        if (selectedProjectForAssign) {
+        if (selectedProject || selectedProjectForAssign) {
             const token = localStorage.getItem("token");
             const fetchUsers = async () => {
                 try {
@@ -77,18 +78,25 @@ const StaffProjectList = () => {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     const allUsers = res.data;
+
                     setPhotographers(allUsers.filter(user => user.role === "p"));
                     setEditors(allUsers.filter(user => user.role === "e"));
+
+                    const map = {};
+                    allUsers.forEach(user => {
+                        map[user.id] = user.name;
+                    });
+                    setUserMap(map);
                 } catch (error) {
                     console.error("Error fetching users:", error);
                 }
             };
             fetchUsers();
         }
-    }, [selectedProjectForAssign]);
+    }, [selectedProject, selectedProjectForAssign]);
 
     const handleProjectClick = (project, title) => {
-        if (title === "Pending" && userRole !== "m") return;
+        if (title === "Pending" && (userRole !== "m")) return;
         setSelectedProject(project);
         if (project.state === 1) setSelectedStage("photographing");
         else if (project.state === 2) setSelectedStage("editing");
@@ -227,18 +235,25 @@ const StaffProjectList = () => {
 
         try {
             const token = localStorage.getItem("token");
-            await axios.post("/api/upload_media", formData, {
+            const uploadEndpoint = userRole === "e"
+                ? "/api/upload_final_media"
+                : "/api/upload_media";
+
+            await axios.post(uploadEndpoint, formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "multipart/form-data"
                 }
             });
+
             alert("Upload successful");
             setShowUploadModal(false);
         } catch (err) {
             console.error("Upload error", err);
+            alert("Failed to upload files.");
         }
     };
+
 
     const renderProjectList = (title, projects, color) => (
         <div className="projects-card-row">
@@ -269,7 +284,7 @@ const StaffProjectList = () => {
     return (
         <Layout>
             <div className="dashboard-content-row">
-                {userRole === "m" && renderProjectList("Pending", pendingProjects, "#f0ad4e")}
+                {(userRole === "m" || userRole === "a") && renderProjectList("Pending", pendingProjects, "#f0ad4e")}
                 {renderProjectList("Photographing", activeProjects.filter(p => p.state === 1), "#4a6fdc")}
                 {renderProjectList("Editing", activeProjects.filter(p => p.state === 2), "#5bc0de")}
                 {renderProjectList("Delivered", finishedProjects, "#5cb85c")}
@@ -287,10 +302,14 @@ const StaffProjectList = () => {
                         <p><strong>Start Date:</strong> {selectedProject.creationDate}</p>
                         <p><strong>End Date:</strong> {selectedProject.endDate}</p>
                         {selectedProject.photographers && selectedProject.photographers.length > 0 && (
-                            <p><strong>Photographers:</strong> {selectedProject.photographers.join(", ")}</p>
+                            <p><strong>Photographers:</strong> {
+                                selectedProject.photographers.map(id => userMap[id] || id).join(", ")
+                            }</p>
                         )}
                         {selectedProject.editors && selectedProject.editors.length > 0 && (
-                            <p><strong>Editors:</strong> {selectedProject.editors.join(", ")}</p>
+                            <p><strong>Editors:</strong> {
+                                selectedProject.editors.map(id => userMap[id] || id).join(", ")
+                            }</p>
                         )}
 
                         {userRole === "m" && pendingProjects.some(p => p.id === selectedProject.id) && (

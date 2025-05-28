@@ -38,6 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         requestPath.equals("/api/users/verify-reset-code") ||
                         requestPath.equals("/api/users/reset-password") ||
                         requestPath.startsWith("/api/users/email/") ||
+                        requestPath.startsWith("/api/notifications/") ||
                         requestPath.startsWith("/ws") ||
                         requestPath.startsWith("/google/") // <-- This skips Google OAuth init, NOT the /api/google/events
         )) {

@@ -59,9 +59,6 @@ public class AdminController {
         }
         
         String newRole = request.getRole();
-        if (newRole == null || (!newRole.equals("a") && !newRole.equals("c"))) {
-            return ResponseEntity.badRequest().body("Invalid role. Use 'a' for admin or 'c' for customer");
-        }
         
         boolean updated = firestoreService.updateUserRole(userId, newRole);
         if (updated) {

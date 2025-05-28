@@ -88,7 +88,7 @@ function Login() {
                     else if (role === 'c') navigate('/dashboard');
                     else if (role === 'm') navigate('/manager_dashboard');
                     else if (role === 'p') navigate('/photograph_dashboard');
-                    else if (role === 's') navigate('/salesman_dashboard');
+                    else if (role === 's') navigate('/dashboard');
                     else if (role === 'e') navigate('/editor_dashboard');
                     return;
                 } else {

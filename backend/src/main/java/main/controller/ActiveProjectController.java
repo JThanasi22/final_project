@@ -61,7 +61,7 @@ public class ActiveProjectController {
                 return ResponseEntity.status(404).body("Client email not found.");
             }
 
-            long halfPrice = Long.parseLong(request.getPrice()) / 2;
+            long halfPrice = Long.parseLong(request.getPrice());
             String paymentUrl = stripeService.generatePaymentLink(request.getProjectId(), halfPrice);
 
             // payment notification

@@ -36,7 +36,7 @@ public class AuthController {
         try {
             String email = payload.get("email");
             String password = payload.get("password");
-            String deviceId = payload.get("deviceId"); // optional
+            String deviceId = payload.get("deviceId");
 
             System.out.println("➡️ Login attempt for: " + email);
 
@@ -45,27 +45,19 @@ public class AuthController {
                 return ResponseEntity.status(401).body("Invalid credentials");
             }
 
-            // ✅ TEMPORARILY BYPASSING 2FA
-            String token = JwtUtil.generateToken(user);
-            return ResponseEntity.ok(Map.of("token", token));
+            // 🔒 Check if device is remembered
+            if (deviceId != null && firestoreService.isDeviceRemembered(email, deviceId)) {
+                String token = JwtUtil.generateToken(user);
+                return ResponseEntity.ok(Map.of("token", token));
+            }
 
-        /*
-        // 🔒 Check remembered device
-        if (deviceId != null && firestoreService.isDeviceRemembered(email, deviceId)) {
-            String token = JwtUtil.generateToken(user);
-            return ResponseEntity.ok(Map.of("token", token));
-        }
+            String code = String.format("%06d", new Random().nextInt(999999));
+            long expiresAt = System.currentTimeMillis() + 5 * 60 * 1000;
 
-        // 🔐 Proceed to 2FA
-        String code = String.format("%06d", new Random().nextInt(999999));
-        long expiresAt = System.currentTimeMillis() + 5 * 60 * 1000;
+            firestoreService.saveTwoFactorCode(email, code, expiresAt);
+            emailService.sendTwoFactorCode(email, code);
 
-        firestoreService.saveTwoFactorCode(email, code, expiresAt);
-        emailService.sendResetCode(email, code);
-
-        return ResponseEntity.ok("2FA code sent");
-        */
-
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Internal error");
         }

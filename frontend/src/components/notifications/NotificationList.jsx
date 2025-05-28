@@ -9,10 +9,11 @@ import Layout from '../Layout';
 import axios from 'axios';
 import CheckIcon from '@mui/icons-material/Check';
 import ClearIcon from '@mui/icons-material/Clear';
-import { Snackbar, Alert } from '@mui/material';
+import { Snackbar, Alert, Dialog } from '@mui/material';
+import {jwtDecode} from "jwt-decode";
 
 
-const API_URL = '';  // same-origin
+const API_URL = 'http://localhost:8080';  // same-origin
 const token   = localStorage.getItem('token');
 const headers = { Authorization: `Bearer ${token}` };
 
@@ -24,9 +25,18 @@ const NotificationList = () => {
         message: '',
         severity: 'success'
     });
+    const [openDialog, setOpenDialog] = useState(false);
+    const [dialogMessage, setDialogMessage] = useState('');
+    const [selectedNotificationId, setSelectedNotificationId] = useState(null);
+    const [selectedProjectId, setSelectedProjectId] = useState(null);
 
     useEffect(() => {
         const fetchNotifications = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const headers = { Authorization: `Bearer ${token}` };
+
             try {
                 const res = await axios.get(`${API_URL}/api/notifications`, { headers });
                 const sorted = res.data.sort(
@@ -37,6 +47,7 @@ const NotificationList = () => {
                 console.error("Error fetching notifications:", error);
             }
         };
+
         fetchNotifications();
     }, []);
 
@@ -48,7 +59,8 @@ const NotificationList = () => {
         payment_request:   '#FFCDD2',  // light red
         meeting_request:   '#CFD8DC',  // light grey
         meeting_accepted:  '#C8E6C9',  // light green
-        meeting_rejected:  '#FFCDD2'   // light red
+        meeting_rejected:  '#FFCDD2',  // light red
+        change_request:    '#EF9A9A'
     };
 
     const markAsRead = async (id) => {
@@ -158,6 +170,42 @@ const NotificationList = () => {
         }
     };
 
+    const handleAcceptChange = async () => {
+        try {
+            await axios.put(
+                `${API_URL}/api/notifications/change_request/accept`,
+                {
+                    projectId: selectedProjectId
+                },
+                { headers }
+            );
+            await deleteNotification(selectedNotificationId);
+            setSnackbar({ open: true, message: 'Change request accepted.', severity: 'success' });
+        } catch (err) {
+            console.error("Accept failed:", err);
+            setSnackbar({ open: true, message: 'Failed to accept change.', severity: 'error' });
+        }
+        setOpenDialog(false);
+    };
+
+    const handleRejectChange = async () => {
+        try {
+            await axios.put(
+                `${API_URL}/api/notifications/change_request/reject`,
+                {
+                    projectId: selectedProjectId
+                },
+                { headers }
+            );
+            await deleteNotification(selectedNotificationId);
+            setSnackbar({ open: true, message: 'Change request rejected.', severity: 'info' });
+        } catch (err) {
+            console.error("Reject failed:", err);
+            setSnackbar({ open: true, message: 'Failed to reject change.', severity: 'error' });
+        }
+        setOpenDialog(false);
+    };
+
 
     return (
         <Layout>
@@ -246,6 +294,21 @@ const NotificationList = () => {
                                                         sx={{ cursor:'pointer' }}
                                                     />
                                                 )}
+                                                {n.type === 'change_request' && (
+                                                    <Chip
+                                                        label="View"
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => {
+                                                            markAsRead(n.id);
+                                                            setDialogMessage(n.message);
+                                                            setSelectedNotificationId(n.id);
+                                                            setSelectedProjectId(n.projectId);
+                                                            setOpenDialog(true);
+                                                        }}
+                                                        sx={{ cursor: 'pointer' }}
+                                                    />
+                                                )}
                                                 <IconButton size="small" color="error" onClick={() => deleteNotification(n.id)}>
                                                     <DeleteIcon />
                                                 </IconButton>
@@ -272,6 +335,20 @@ const NotificationList = () => {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+            <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+                <Box sx={{ p: 3, minWidth: 300 }}>
+                    <Typography variant="h6" gutterBottom>Change Request</Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>{dialogMessage}</Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <IconButton color="success" onClick={handleAcceptChange}>
+                            <CheckIcon />
+                        </IconButton>
+                        <IconButton color="error" onClick={handleRejectChange}>
+                            <ClearIcon />
+                        </IconButton>
+                    </Box>
+                </Box>
+            </Dialog>
         </Layout>
     );
 };

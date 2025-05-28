@@ -167,9 +167,6 @@ const TopNavbar = ({ toggleSidebar, handleLogout }) => {
                     <span className="icon-menu">☰</span>
                 </button>
                 <div className="navbar-logo"><h2>Studio</h2></div>
-                <div className="search-bar">
-                    <input type="text" placeholder="Search..." />
-                </div>
             </div>
 
             <ToggleNavbar>

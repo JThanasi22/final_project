@@ -21,6 +21,7 @@ const ProjectList = () => {
     const [selectedProject, setSelectedProject] = useState(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState(null);
+    const [changeRequestMessage, setChangeRequestMessage] = useState('');
     const [newProject, setNewProject] = useState({
         title: '',
         description: '',
@@ -156,6 +157,37 @@ const ProjectList = () => {
         }
     };
 
+    const handleRequestChange = async () => {
+        if (!changeRequestMessage.trim()) return;
+
+        const token = localStorage.getItem('token');
+        const notification = {
+            projectId: selectedProject.id,
+            message: changeRequestMessage.trim(),
+            type: 'change_request'
+        };
+
+        try {
+            const response = await fetch('http://localhost:8080/api/notifications/send', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(notification)
+            });
+
+            if (!response.ok) throw new Error('Failed to send notification');
+
+            alert('Change request sent successfully.');
+            setChangeRequestMessage('');
+            setDialogOpen(false);
+        } catch (err) {
+            console.error(err);
+            alert('Error sending change request.');
+        }
+    };
+
     return (
         <Layout>
             <div className="dashboard-content">
@@ -273,6 +305,27 @@ const ProjectList = () => {
                                     <TextField label="Price" value={selectedProject?.price || 'Not Set'} fullWidth disabled />
                                     <TextField label="Creation Date" value={selectedProject?.creationDate || 'N/A'} fullWidth disabled />
                                 </>
+                            )}
+                            {dialogMode === 'view' && selectedProject?.status === 'active' && (
+                                <TextField
+                                    label="Request Change"
+                                    multiline
+                                    rows={3}
+                                    fullWidth
+                                    value={changeRequestMessage}
+                                    onChange={(e) => setChangeRequestMessage(e.target.value)}
+                                    placeholder="Describe the change you want to request..."
+                                />
+                            )}
+                            {dialogMode === 'view' && selectedProject?.status === 'active' && (
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    onClick={handleRequestChange}
+                                    disabled={!changeRequestMessage.trim()}
+                                >
+                                    Request Change
+                                </Button>
                             )}
                         </Box>
                     </DialogContent>

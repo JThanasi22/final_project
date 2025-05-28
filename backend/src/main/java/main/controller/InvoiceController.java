@@ -2,8 +2,8 @@ package main.controller;
 
 import main.model.Invoice;
 import main.service.FirestoreService;
+import main.service.StripeService;
 import main.util.JwtUtil;
-import main.util.PdfReportUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,8 +18,16 @@ import java.util.*;
 @RequestMapping("/api/invoices")
 public class InvoiceController {
 
+
+    @Autowired
+    private StripeService stripeService;
     @Autowired
     private FirestoreService firestoreService;
+
+    public InvoiceController(StripeService stripeService) {
+        this.stripeService = stripeService;
+    }
+
 
     @GetMapping
     public ResponseEntity<?> getAllInvoices() {
@@ -31,6 +39,18 @@ public class InvoiceController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
         }
     }
+
+    @GetMapping("/client")
+    public ResponseEntity<?> getInvoicesByClientId(@RequestParam String clientId) {
+        try {
+            List<Map<String, Object>> invoices = firestoreService.getInvoicesByClientId(clientId);
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        }
+    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getInvoiceById(@PathVariable String id) {
@@ -93,29 +113,20 @@ public class InvoiceController {
     }
 
     @GetMapping("/report")
-    public ResponseEntity<byte[]> generateFinancialReport(
+    public ResponseEntity<byte[]> getReport(
             @RequestParam String startDate,
             @RequestParam String endDate,
-            @RequestHeader("Authorization") String token
+            @RequestParam String managerId
     ) {
         try {
-            String cleanToken = token.replace("Bearer ", "");
-            String managerId = JwtUtil.extractUserId(cleanToken);
-
-            LocalDate start = LocalDate.parse(startDate);
-            LocalDate end = LocalDate.parse(endDate);
-
-            List<Invoice> invoices = firestoreService.getInvoicesForManagerWithinPeriod(managerId, start, end);
-            byte[] pdf = PdfReportUtil.generateInvoiceReport(invoices, start, end, firestoreService);
-
+            byte[] pdf = stripeService.generateFinancialReport(startDate, endDate, managerId);
             return ResponseEntity.ok()
-                    .header("Content-Type", "application/pdf")
-                    .header("Content-Disposition", "attachment; filename=financial_report.pdf")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=financial_report.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
-
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

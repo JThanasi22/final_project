@@ -36,10 +36,11 @@ public class SecurityConfig {
                                 "/api/users/request-reset", "/api/users/verify-reset-code",
                                 "/api/users/reset-password", "/api/users/verify-2fa").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/active_projects/download_media").authenticated()
+                        .requestMatchers("/api/notifications/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/finished_projects").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/payment/webhook").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pending-projects/mark-paid").permitAll()
-
+                        .requestMatchers(HttpMethod.PUT, "/api/notifications/**").authenticated()
                         .requestMatchers("/api/google/events").authenticated()
                         .requestMatchers("/api/users/me", "/api/users/update").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated()

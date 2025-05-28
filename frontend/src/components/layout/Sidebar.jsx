@@ -38,7 +38,7 @@ const Sidebar = ({ isOpen, isActiveRoute }) => {
                 navigate('/editor_dashboard');
                 break;
             case 's':
-                navigate('/support_dashboard');
+                navigate('/dashboard');
                 break;
             default:
                 navigate('/dashboard'); // fallback
@@ -65,7 +65,7 @@ const Sidebar = ({ isOpen, isActiveRoute }) => {
                 <div
                     className={`nav-item ${checkActive('/projects') || checkActive('/staff_project') ? 'active' : ''}`}
                     onClick={() => {
-                        if (['m', 'p', 'e'].includes(userRole)) {
+                        if (['m', 'p', 'e','a'].includes(userRole)) {
                             navigate('/staff_project');
                         } else {
                             navigate('/projects');
@@ -74,19 +74,23 @@ const Sidebar = ({ isOpen, isActiveRoute }) => {
                 >
                     <span className="nav-label">Projects</span>
                 </div>
-                <div
-                    className={`nav-item ${checkActive('/invoices') ? 'active' : ''}`}
-                    onClick={() => navigate('/invoices')}
-                >
-                    <span className="nav-label">Invoices</span>
-                </div>
+                {(userRole !== 'p' && userRole !== 'e') && (
+                    <div
+                        className={`nav-item ${checkActive('/invoices') ? 'active' : ''}`}
+                        onClick={() => navigate('/invoices')}
+                    >
+                        <span className="nav-label">Invoices</span>
+                    </div>
+                )}
+                {( userRole === 'c' || userRole === "s") && (
                 <div
                     className={`nav-item ${checkActive('/portfolio') ? 'active' : ''}`}
                     onClick={() => navigate('/portfolio')}
                 >
                     <span className="nav-label">Portfolio</span>
                 </div>
-                {userRole !== 'c' && (
+                )}
+                {(userRole !== 'c' && userRole !== 'a' && userRole !== "s") && (
                     <div
                         className={`nav-item ${checkActive('/tasks') ? 'active' : ''}`}
                         onClick={() => navigate('/tasks')}
@@ -112,20 +116,21 @@ const Sidebar = ({ isOpen, isActiveRoute }) => {
                 >
                     <span className="nav-label">Notifications</span>
                 </div>
+                {(userRole === "s") &&(
+                    <div
+                        className={`nav-item ${checkActive('/email') ? 'active' : ''}`}
+                        onClick={() => navigate('/email')}
+                    >
+                        <span className="nav-label">Email Client</span>
+                    </div>
+                )}
                 <div
                     className={`nav-item ${checkActive('/settings') ? 'active' : ''}`}
                     onClick={() => navigate('/settings')}
                 >
                     <span className="nav-label">Settings</span>
                 </div>
-                {userRole === 'a' && (
-                    <div
-                        className={`nav-item ${checkActive('/admin') ? 'active' : ''}`}
-                        onClick={() => navigate('/admin')}
-                    >
-                        <span className="nav-label">Admin</span>
-                    </div>
-                )}
+
             </div>
         </div>
     );

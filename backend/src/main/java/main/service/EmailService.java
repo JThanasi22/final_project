@@ -24,6 +24,19 @@ public class EmailService {
         System.out.println("📧 Reset code sent to: " + toEmail);
     }
 
+    public void sendTwoFactorCode(String toEmail, String code) {
+        String subject = "Your 2 Factor Auth Code";
+        String body = "Use this code to Login: " + code + "\n\nThis code will expire in 5 minutes.";
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(body);
+
+        mailSender.send(message);
+        System.out.println("📧 Reset code sent to: " + toEmail);
+    }
+
     public void sendWelcomeEmail(String toEmail, String name) {
         String subject = "Welcome to Studio21 – Let’s Create Something Beautiful Together!";
 
@@ -46,6 +59,16 @@ public class EmailService {
 
         mailSender.send(message);
         System.out.println("📧 Welcome email sent to: " + toEmail);
+    }
+
+    public void sendEmail(String toEmail, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(body);
+
+        mailSender.send(message);
+        System.out.println("📧 Custom email sent to: " + toEmail);
     }
 
 
